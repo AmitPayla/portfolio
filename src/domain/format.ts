@@ -52,7 +52,8 @@ export function formatSignedMoney(value: Paise | null | undefined): string {
 
 /**
  * Formats a fraction as a percentage with two decimals: 0.03741 → "+3.74%".
- * Rounds half away from zero on the hundredth of a percent.
+ * Rounds half away from zero on the hundredth of a percent. Fractions from
+ * `ratio` arrive already rounded on the integers, so exact halves come out right too.
  */
 export function formatPercent(fraction: number | null | undefined, sign: SignMode = 'always'): string {
   if (fraction == null || !Number.isFinite(fraction)) return MISSING;

@@ -124,7 +124,7 @@ To see it yourself: press `j` in the Expo CLI to open React Native DevTools, go 
 - **Holdings store a cost basis, not an average price.** Invested is exact; the average is derived (cost ÷ qty) and rounded only for display.
 - **Buy**: cost += qty × fill price, exact, so the average becomes the true weighted average.
 - **Sell** (average-cost method): the shares sold take out `cost × sold ÷ held`, computed exactly with BigInt and rounded half-up. That is the only rounding in the ledger, and realized P&L is computed from the same rounded figure, so remaining cost + released cost always equals the original.
-- **Display rounding**: the average price and percentages are rounded half away from zero (2 dp for %).
+- **Display rounding**: the average price and percentages are rounded half away from zero (2 dp for %). Percentages are rounded on the integers (BigInt), because a float can't hold an exact half: 35.205% would otherwise print as 35.20%.
 - **Totals match the rows to the paisa.** Every row figure is an exact integer and the summary is their integer sum, so value − invested = P&L by construction (tested).
 - **Guards**: quantities are whole numbers from 1 to 1,00,000 per order, which keeps `qty × price` far inside 2^53. A missing price is `null` all the way through and renders as `--`; it is never 0.
 - **Today's P&L** compares shares held overnight with the previous close, and shares bought today with their fill price. Otherwise a buy would show a fake day gain the moment it fills. A sell consumes today's shares first (intraday square-off). It covers unrealized P&L on current holdings, like a broker's holdings view; realized P&L is shown on the fill.

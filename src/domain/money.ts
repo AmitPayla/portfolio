@@ -93,8 +93,17 @@ export function mulDivRoundPaise(value: Paise, multiplier: number, divisor: numb
   return paise(Number((numerator * 2n + d) / (2n * d)));
 }
 
-/** a / b as a fraction (0.0374 = 3.74%), or null when b is zero. Display-only. */
+/**
+ * a / b as a fraction (0.0374 = 3.74%), or null when b is zero. Display-only,
+ * so it is rounded here to the hundredth of a percent that gets shown, half
+ * away from zero. The rounding is done on the integers because a float can't
+ * hold an exact half: 7041 / 20000 is stored as 0.35204999…, which would print
+ * 35.20% instead of 35.21%.
+ */
 export function ratio(numerator: Paise, denominator: Paise): number | null {
   if (denominator === 0) return null;
-  return numerator / denominator;
+  const n = BigInt(Math.abs(numerator)) * 10_000n;
+  const d = BigInt(Math.abs(denominator));
+  const hundredths = (n * 2n + d) / (2n * d);
+  return Number((numerator < 0) !== (denominator < 0) ? -hundredths : hundredths) / 10_000;
 }

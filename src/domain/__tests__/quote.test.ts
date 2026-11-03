@@ -92,7 +92,8 @@ describe('mergeSnapshot', () => {
 
 describe('dayChange', () => {
   it('is ltp minus previous close', () => {
-    expect(dayChange(quote())).toEqual({ abs: p(7.9), pct: 790 / 130000 });
+    // ₹7.90 on a ₹1,300.00 previous close: 0.6077%, kept to the hundredth of a percent.
+    expect(dayChange(quote())).toEqual({ abs: p(7.9), pct: 0.0061 });
   });
 
   it('is unknown without a previous close or quote', () => {

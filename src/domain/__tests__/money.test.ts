@@ -59,4 +59,12 @@ describe('integer arithmetic', () => {
     expect(ratio(paise(5), paise(0))).toBeNull();
     expect(ratio(paise(5), paise(100))).toBe(0.05);
   });
+
+  it('rounds ratios to the hundredth of a percent on the integers', () => {
+    // As floats, 7041 / 20000 × 10,000 is 3520.4999999999995, which would round down.
+    expect(ratio(paise(7041), paise(20000))).toBe(0.3521);
+    expect(ratio(paise(-7041), paise(20000))).toBe(-0.3521);
+    expect(ratio(paise(1), paise(3))).toBe(0.3333);
+    expect(ratio(paise(-1), paise(300000))).toBe(0); // rounds to zero, never -0
+  });
 });

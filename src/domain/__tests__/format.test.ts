@@ -8,7 +8,7 @@ import {
   MISSING,
   trendOf,
 } from '../format';
-import { paise } from '../money';
+import { paise, ratio } from '../money';
 
 describe('groupIndian', () => {
   it.each([
@@ -58,6 +58,13 @@ describe('formatPercent', () => {
     expect(formatPercent(0.00005)).toBe('+0.01%');
     expect(formatPercent(-0.00005)).toBe('-0.01%');
     expect(formatPercent(0.0000499)).toBe('0.00%');
+  });
+
+  it('rounds exact halves away from zero when the percentage comes from paise', () => {
+    // Previous close ₹4,000.00, up ₹0.60: exactly +0.015%.
+    expect(formatPercent(ratio(paise(60), paise(400000)))).toBe('+0.02%');
+    // -₹4,955.00 on ₹1,00,000.00 invested: exactly -4.955%.
+    expect(formatPercent(ratio(paise(-495500), paise(10000000)))).toBe('-4.96%');
   });
 
   it('never prints a negative zero', () => {

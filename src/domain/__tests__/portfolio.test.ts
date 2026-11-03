@@ -84,7 +84,7 @@ describe('summarizePortfolio', () => {
 
   it('reports what share of invested capital is priced, and the value change vs invested', () => {
     // ₹1,36,578.15 priced out of ₹1,36,578.15 + ₹12,375.00 (OLDCO)
-    expect(summary.pricedInvestedShare).toBeCloseTo(13657815 / (13657815 + 1237500), 12);
+    expect(summary.pricedInvestedShare).toBe(0.9169); // 0.916920…, kept to the hundredth of a percent
     expect(formatPercent(summary.pricedInvestedShare, 'negative-only')).toBe('91.69%');
     expect(summary.valueVsInvestedPct).toBe(summary.pnlPct);
     expect(summarizePortfolio([reliance, tcs], quotes).pricedInvestedShare).toBe(1);
@@ -93,7 +93,11 @@ describe('summarizePortfolio', () => {
   it('computes Today % against the start-of-day value', () => {
     // RELIANCE +₹197.50, TCS 40 × -₹2.60 = -₹104.00
     expect(summary.dayPnlPaise).toBe(9350);
-    expect(summary.dayPnlPct).toBeCloseTo(9350 / (3250000 + 40 * 250170), 12);
+    // ₹93.50 over the ₹1,32,568.00 start-of-day value is 0.0705%, kept to the hundredth.
+    expect(summary.dayPnlPct).toBe(0.0007);
+    // The base matters: RELIANCE alone is +0.61% of its ₹32,500.00 start-of-day value,
+    // but would read +0.60% against the ₹32,989.75 paid for it.
+    expect(formatPercent(summarizePortfolio([reliance], quotes).dayPnlPct)).toBe('+0.61%');
   });
 
   it('handles an empty or fully unpriced portfolio without dividing by zero', () => {
