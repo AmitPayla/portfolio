@@ -55,7 +55,10 @@ export function createWatchlistStore(storage = AsyncStorage) {
         partialize: (state) => ({ symbols: state.symbols }),
         merge: (persisted, current) => ({
           ...current,
-          symbols: sanitizeWatchlist((persisted as { symbols?: unknown } | undefined)?.symbols),
+          // Storage is untrusted input: narrow it instead of casting it.
+          symbols: sanitizeWatchlist(
+            typeof persisted === 'object' && persisted !== null && 'symbols' in persisted ? persisted.symbols : undefined,
+          ),
         }),
         // Runs after the merge, or after a failed read: either way the list is final now.
         onRehydrateStorage: () => (_state, error) => {

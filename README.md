@@ -77,7 +77,7 @@ src/
  watchlistStore (AsyncStorage)                                         one row / the summary / the detail
 ```
 
-The screens never talk to the feed; they read the store. `src/services/marketData.ts` is the only file that knows the feed is simulated. To use a real socket you would construct a WebSocket `PriceFeed` there and drop the `seed` call.
+The screens never talk to the feed; they read the store. `src/services/marketData.ts` is the only file that knows the feed is simulated. To use a real socket you would construct a WebSocket `PriceFeed` there and drop the `seed` call. The swap is already exercised: the service's tests run the whole pipeline against a second implementation, a hand-driven `FakeFeed`.
 
 ## State and re-render approach
 
@@ -106,6 +106,15 @@ The rules that keep renders scoped:
 | Hidden Watchlist tab | 0 |
 | Portfolio while the Watchlist tab is open | 0 (it was ~120 before the freeze fix) |
 | Tabs under a pushed detail screen | 0 |
+
+**Scrolling under ticks** (Android `dumpsys gfxinfo`, about 15 s of flinging the list while 20 ticks/s flow; dev build on the emulator, so a release build on a phone does better):
+
+| Metric | Result |
+| --- | --- |
+| Frames rendered | 1,159 |
+| Janky frames | 12 (1.0%) |
+| Slow UI-thread frames | 2 |
+| Median frame time | 17 ms (60 fps) |
 
 To see it yourself: press `j` in the Expo CLI to open React Native DevTools, go to Profiler, record a few seconds. Each commit contains one `HoldingRow` and `SummaryCard`.
 

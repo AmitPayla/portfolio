@@ -60,6 +60,8 @@ export function companyName(symbol: string): string {
   return COMPANY_NAMES[symbol] ?? 'Not listed on the feed';
 }
 
+const MARKET_SYMBOL_SET: ReadonlySet<string> = new Set(MARKET_SYMBOLS);
+
 export function isMarketSymbol(symbol: string): boolean {
-  return (MARKET_SYMBOLS as readonly string[]).includes(symbol);
+  return MARKET_SYMBOL_SET.has(symbol);
 }

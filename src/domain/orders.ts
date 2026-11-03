@@ -161,8 +161,11 @@ export function executeMarketOrder(
       fill: { ...order, pricePaise: ltpPaise, valuePaise, realizedPnlPaise: null, filledAt: now },
     };
   }
-  // validateOrderQuantity guarantees a holding with enough shares for a sell.
-  const sold = applySell(holding as Holding, order.qty, ltpPaise);
+  if (!holding) {
+    // validateOrderQuantity already rejects this; the guard lets the compiler see it too.
+    return { ok: false, reason: 'invalid-quantity', message: "You don't hold any shares to sell" };
+  }
+  const sold = applySell(holding, order.qty, ltpPaise);
   return {
     ok: true,
     holding: sold.holding,
