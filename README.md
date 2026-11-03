@@ -46,7 +46,7 @@ npm run lint       # eslint-config-expo, including the React Compiler hook rules
 - **Stock detail**: live price, day change, open/high/low/prev close/volume, a chart of the ticks received since the screen opened, and your position.
 - **Buy / sell sheet**: quantity with validation, live estimated value, a new-average preview on buys and a realized-P&L preview on sells. It fills at the last price read at the moment you confirm.
 - Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** banner. Numbers use Indian grouping (₹12,34,567.89).
-- **Light/dark**: follows the system until you tap the sun/moon button in the header. The new theme then spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
+- **Light/dark**: the app starts dark. The sun/moon button in the header switches theme: the new theme spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
 
 ## Architecture
 
@@ -178,7 +178,7 @@ The REST API is a shared test server, so it is called once per load, on pull-to-
 | Chart | react-native-svg, hand-rolled | One small line chart; full control over re-renders, no heavy chart dependency |
 | Persistence | AsyncStorage via zustand `persist` | The watchlist is a tiny list; values are sanitised on load |
 | Theme switch | @shopify/react-native-skia | Snapshots the app as a GPU image and cuts the growing hole on the UI thread; plain views can't cut a hole in an image |
-| System bars | expo-status-bar, expo-navigation-bar | Bar icons follow the app's own light/dark choice, not just the system's |
+| System bars | expo-status-bar, expo-navigation-bar | Bar icons follow the app's light/dark choice, not the phone's |
 | Lists | FlatList | 21–25 fixed-height rows; FlashList's recycling would add per-row animation-state pitfalls for no gain at this size |
 
 ## Design
@@ -208,7 +208,7 @@ What this preserves:
 - **No remounts.** Only the theme object changes, so the open screen, scroll positions and typed filter text survive. Rows sat at identical pixel positions before and after a switch on the emulator.
 - **Rapid taps.** Taps during a reveal queue, and the latest wins: two quick taps end where they started, three end flipped.
 - **Reduce Motion** switches instantly.
-- **Saved choice.** The splash screen waits for the saved choice, so a cold start never flashes the wrong theme.
+- **Starts dark, remembers the choice.** The splash screen is dark and waits for the saved choice, so a cold start never flashes the wrong theme. The splash colour is native config, so it only changes in a new build, not in Expo Go.
 
 Measured on the emulator in a dev build:
 
@@ -246,6 +246,7 @@ Done from the stretch list:
 - Simulator dev menu (tick rate, force disconnect).
 
 Not done:
+- **Following the phone's light/dark setting.** The brief asks for it; this build starts dark by product choice, and the header toggle switches theme. Bringing it back means adding a "system" value to the theme store and resolving it with `useColorScheme()`.
 - Limit orders.
 - An orders-history screen. Fills are already recorded in the store.
 

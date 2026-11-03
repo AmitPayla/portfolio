@@ -1,13 +1,13 @@
 import { Skia, type SkImage } from '@shopify/react-native-skia';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { findNodeHandle, StyleSheet, useColorScheme, View, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
+import { findNodeHandle, StyleSheet, View, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useStore } from 'zustand';
 import { CircularReveal, type RevealFrame } from './CircularReveal';
 import { revealRadius, type ScreenEdge } from './revealMath';
-import { resolveScheme, themePreferenceStore, type ColorScheme } from './themePreference';
+import { themePreferenceStore, type ColorScheme } from './themePreference';
 import { darkTheme, lightTheme, type Theme } from './tokens';
 
 /** Long enough to read as a wave, short enough not to feel slow. */
@@ -76,9 +76,8 @@ interface PendingChange {
  * ends where the last tap pointed.
  */
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
-  const system = useColorScheme();
-  const preference = useStore(themePreferenceStore, (s) => s.preference);
-  const target = resolveScheme(preference, system);
+  // The saved choice: dark until the user picks light. During a reveal it is ahead of the screen.
+  const target = useStore(themePreferenceStore, (s) => s.preference);
   const reduceMotion = useReducedMotion();
 
   const [applied, setApplied] = useState<ColorScheme>(target);
@@ -160,8 +159,8 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   // Free each snapshot's native memory once its overlay is gone.
   useEffect(() => () => frame?.image.dispose(), [frame]);
 
-  // The phone's light/dark setting changed (while the user has not picked one) or storage
-  // hydrated: switch without a reveal, as there is no tap to start it from.
+  // The saved choice changed without a tap (storage hydration): switch without a reveal,
+  // as there is no tap point to start it from.
   useEffect(() => {
     if (target !== intended.current) void run({ scheme: target });
   }, [target, run]);

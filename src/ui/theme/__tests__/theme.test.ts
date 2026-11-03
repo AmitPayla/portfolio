@@ -1,6 +1,6 @@
 import type AsyncStorage from '@react-native-async-storage/async-storage';
 import { edgeCoverRadius, revealRadius } from '../revealMath';
-import { createThemePreferenceStore, isThemePreference, resolveScheme } from '../themePreference';
+import { createThemePreferenceStore, isColorScheme } from '../themePreference';
 
 describe('revealRadius', () => {
   const W = 412;
@@ -57,18 +57,10 @@ describe('edgeCoverRadius', () => {
   });
 });
 
-describe('resolveScheme', () => {
-  it('follows the system only when the preference is system', () => {
-    expect(resolveScheme('system', 'dark')).toBe('dark');
-    expect(resolveScheme('system', 'light')).toBe('light');
-    expect(resolveScheme('system', null)).toBe('light');
-    expect(resolveScheme('dark', 'light')).toBe('dark');
-    expect(resolveScheme('light', 'dark')).toBe('light');
-  });
-
-  it('recognises valid preferences only', () => {
-    expect(['system', 'light', 'dark'].every(isThemePreference)).toBe(true);
-    expect([undefined, 'blue', 1, null].some(isThemePreference)).toBe(false);
+describe('isColorScheme', () => {
+  it('accepts light and dark only', () => {
+    expect(['light', 'dark'].every(isColorScheme)).toBe(true);
+    expect([undefined, 'system', 'blue', 1, null].some(isColorScheme)).toBe(false);
   });
 });
 
@@ -83,17 +75,27 @@ describe('theme preference store', () => {
   }
   const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-  it('defaults to system, persists a choice across restarts and reports hydration', async () => {
+  it('starts dark, persists a choice across restarts and reports hydration', async () => {
     const storage = memoryStorage();
     const first = createThemePreferenceStore(storage);
-    expect(first.getState()).toMatchObject({ preference: 'system', hydrated: false });
+    expect(first.getState()).toMatchObject({ preference: 'dark', hydrated: false });
     await settle();
     expect(first.getState().hydrated).toBe(true);
-    first.setState({ preference: 'dark' });
+    first.setState({ preference: 'light' });
     await settle();
 
     const afterRestart = createThemePreferenceStore(storage);
     await settle();
-    expect(afterRestart.getState()).toMatchObject({ preference: 'dark', hydrated: true });
+    expect(afterRestart.getState()).toMatchObject({ preference: 'light', hydrated: true });
+  });
+
+  it('falls back to dark for anything unexpected in storage, including the old "system" value', async () => {
+    for (const saved of [{ preference: 'system' }, { preference: 'blue' }, 'garbage', null]) {
+      const storage = memoryStorage();
+      await storage.setItem('theme-preference', JSON.stringify({ state: saved, version: 1 }));
+      const store = createThemePreferenceStore(storage);
+      await settle();
+      expect(store.getState()).toMatchObject({ preference: 'dark', hydrated: true });
+    }
   });
 });
