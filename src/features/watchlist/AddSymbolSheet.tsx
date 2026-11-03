@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useStore } from 'zustand';
 import { formatMoney, formatPercent, formatSignedMoney, MISSING, trendOf } from '@/domain/format';
 import { dayChange } from '@/domain/quote';
@@ -11,7 +10,6 @@ import { watchlistStore } from '@/state/watchlistStore';
 import { AppText } from '@/ui/components/AppText';
 import { SymbolAvatar } from '@/ui/components/primitives';
 import { PressableScale } from '@/ui/components/PressableScale';
-import { DURATION } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { fonts, radius, space } from '@/ui/theme/tokens';
 
@@ -33,13 +31,8 @@ function WatchToggle({ added, onPress, symbol }: { readonly added: boolean; read
       testID={`watch-toggle-${symbol}`}
       style={[styles.watch, { backgroundColor: added ? colors.brand : colors.brandSoft }]}
     >
-      {added ? (
-        <Animated.View entering={FadeIn.duration(DURATION.fast)}>
-          <Ionicons name="checkmark" size={18} color={colors.onBrand} />
-        </Animated.View>
-      ) : (
-        <Ionicons name="add" size={20} color={colors.brand} />
-      )}
+      {/* No entering animation: it would also run for every watched row as the sheet opens. */}
+      {added ? <Ionicons name="checkmark" size={18} color={colors.onBrand} /> : <Ionicons name="add" size={20} color={colors.brand} />}
     </PressableScale>
   );
 }
@@ -123,6 +116,8 @@ export function AddSymbolSheet() {
         keyExtractor={(s) => s}
         renderItem={({ item }) => <PickerRow symbol={item} added={watched.includes(item)} />}
         keyboardShouldPersistTaps="handled"
+        // All 25 rows in the first pass: later batches would mount while the sheet is sliding in.
+        initialNumToRender={MARKET_SYMBOLS.length}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <AppText variant="body" tone="muted" style={styles.empty}>

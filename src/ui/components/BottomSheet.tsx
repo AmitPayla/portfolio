@@ -95,8 +95,14 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
     },
   });
 
-  const sheetStyle = useAnimatedStyle(() => ({
+  // Two styles on purpose. Reanimated re-sends every prop of a style whenever any of them
+  // changes, and maxHeight is a layout prop: in the slide's style it would force a layout
+  // pass on every frame of the slide or drag. Kept apart, it only updates while the
+  // keyboard moves, and the slide stays a transform-only update.
+  const sizeStyle = useAnimatedStyle(() => ({
     maxHeight: Math.min(areaHeight.get() * 0.88, areaHeight.get() - insets.top - space.sm - keyboard.height.get()),
+  }));
+  const slideStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.get() - keyboard.height.get() }],
   }));
   const backdropStyle = useAnimatedStyle(() => ({
@@ -113,7 +119,8 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
         style={[
           styles.sheet,
           { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, space.lg) },
-          sheetStyle,
+          sizeStyle,
+          slideStyle,
         ]}
         onLayout={(e) => {
           const height = e.nativeEvent.layout.height;
