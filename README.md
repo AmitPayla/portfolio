@@ -25,7 +25,7 @@ A development build works too: `npx expo run:android`.
 Checks:
 
 ```bash
-npm test           # 113 unit tests (Jest, jest-expo)
+npm test           # 114 unit tests (Jest, jest-expo)
 npm run typecheck  # tsc --noEmit, strict + noUncheckedIndexedAccess
 npm run lint       # eslint-config-expo, including the React Compiler hook rules
 ```
@@ -36,7 +36,12 @@ npm run lint       # eslint-config-expo, including the React Compiler hook rules
 
 ## What's in it
 
-- **Portfolio**: summary card (current value, invested, total P&L and today's P&L in ₹ and %), live holdings list, sort by value / P&L / name (tap again to flip direction), filter-as-you-type, pull to refresh.
+- **Portfolio**: summary card where every figure has ₹ and %:
+  - current value, with its change versus what you invested;
+  - invested, with the share of your capital that has a live price ("99.38% priced");
+  - total P&L and today's P&L.
+
+  Then the live holdings list: sort by value / P&L / name (tap again to flip direction), filter-as-you-type, pull to refresh.
 - **Watchlist**: last price and day change, add from the 25 symbols, swipe left to remove (with Undo), persisted across restarts.
 - **Stock detail**: live price, day change, open/high/low/prev close/volume, a chart of the ticks received since the screen opened, and your position.
 - **Buy / sell sheet**: quantity with validation, live estimated value, a new-average preview on buys and a realized-P&L preview on sells. It fills at the last price read at the moment you confirm.
@@ -121,6 +126,7 @@ OLDCO is requested from the API like everything else. The API leaves it out, so 
 
 - **Its row** shows quantity, average and cost; LTP, value and P&L show `--`. In value/P&L sorts it always goes last.
 - **The summary leaves it out of all four totals and says so.** The note names the symbol and its invested amount ("OLDCO has no live price and is left out of these totals (₹12,375.00 invested)").
+- **The Invested figure shows the coverage as a number.** "99.38% priced" is ₹19,88,101.03 ÷ (₹19,88,101.03 + ₹12,375.00), and it reads 100.00% when everything has a price.
 
 Why this choice:
 
@@ -182,7 +188,7 @@ Two platform quirks worth knowing:
 
 ## Tests
 
-113 unit tests cover:
+114 unit tests cover:
 
 - money maths and rounding;
 - Indian formatting;

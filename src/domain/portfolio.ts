@@ -106,7 +106,14 @@ export interface PortfolioSummary {
   /** Holdings with a live price; only these are in the totals below. */
   readonly pricedCount: number;
   readonly currentValuePaise: Paise;
+  /** Change of the current value against what was paid for it: the "%" shown with Current value. */
+  readonly valueVsInvestedPct: number | null;
   readonly investedPaise: Paise;
+  /**
+   * Share of all invested capital (priced + unpriced) that has a live price and
+   * is in these totals: the "%" shown with Invested. 1 when everything is priced.
+   */
+  readonly pricedInvestedShare: number | null;
   readonly pnlPaise: Paise;
   readonly pnlPct: number | null;
   readonly dayPnlPaise: Paise;
@@ -157,17 +164,22 @@ export function summarizePortfolio(holdings: readonly Holding[], quotes: QuoteMa
   const investedPaise = paise(invested);
   const pnlPaise = subPaise(currentValuePaise, investedPaise);
   const dayPnlPaise = paise(dayPnl);
+  const unpricedInvestedPaise = paise(unpricedInvested);
+  const pnlPct = ratio(pnlPaise, investedPaise);
   return {
     holdingsCount: holdings.length,
     pricedCount,
     currentValuePaise,
+    // The same number as P&L % by definition (value = invested + P&L); named for where it is shown.
+    valueVsInvestedPct: pnlPct,
     investedPaise,
+    pricedInvestedShare: ratio(investedPaise, addPaise(investedPaise, unpricedInvestedPaise)),
     pnlPaise,
-    pnlPct: ratio(pnlPaise, investedPaise),
+    pnlPct,
     dayPnlPaise,
     dayPnlPct: ratio(dayPnlPaise, paise(dayBaseTotal)),
     dayExcludedCount,
     unpriced,
-    unpricedInvestedPaise: paise(unpricedInvested),
+    unpricedInvestedPaise,
   };
 }
