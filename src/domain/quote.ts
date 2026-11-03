@@ -37,7 +37,7 @@ export interface DayChange {
   readonly pct: number | null;
 }
 
-export function dayChange(quote: Quote | undefined): DayChange | null {
+export function dayChange(quote: Pick<Quote, 'ltp' | 'prevClose'> | undefined): DayChange | null {
   if (!quote || quote.prevClose == null) return null;
   const abs = subPaise(quote.ltp, quote.prevClose);
   return { abs, pct: ratio(abs, quote.prevClose) };

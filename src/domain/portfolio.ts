@@ -50,6 +50,7 @@ export interface HoldingMetrics {
   readonly pnlPct: number | null;
   /** Day's P&L on the shares held now (null without a price or previous close). */
   readonly dayPnlPaise: Paise | null;
+  readonly dayPnlPct: number | null;
   /** What those shares were worth at the start of the day: the base for Today's P&L %. */
   readonly dayBasePaise: Paise | null;
 }
@@ -79,12 +80,14 @@ export function computeHoldingMetrics(holding: Holding, quote: PriceView | undef
       pnlPaise: null,
       pnlPct: null,
       dayPnlPaise: null,
+      dayPnlPct: null,
       dayBasePaise: null,
     };
   }
   const valuePaise = mulQty(quote.ltp, holding.qty);
   const pnlPaise = subPaise(valuePaise, investedPaise);
   const dayBasePaise = dayBase(holding, quote);
+  const dayPnlPaise = dayBasePaise == null ? null : subPaise(valuePaise, dayBasePaise);
   return {
     investedPaise,
     avgPricePaise,
@@ -92,7 +95,8 @@ export function computeHoldingMetrics(holding: Holding, quote: PriceView | undef
     valuePaise,
     pnlPaise,
     pnlPct: ratio(pnlPaise, investedPaise),
-    dayPnlPaise: dayBasePaise == null ? null : subPaise(valuePaise, dayBasePaise),
+    dayPnlPaise,
+    dayPnlPct: dayPnlPaise == null || dayBasePaise == null ? null : ratio(dayPnlPaise, dayBasePaise),
     dayBasePaise,
   };
 }

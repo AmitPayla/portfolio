@@ -20,9 +20,15 @@ function seedSimulator(snapshot: OhlcSnapshot): void {
       highPaise: q.high,
       lowPaise: q.low,
       volume: q.volume,
+      seq: q.seq,
     })),
   );
 }
+
+// Fast Refresh can re-run this module while the store still holds prices (and their seqs);
+// seed from them so the new simulator's ticks continue the sequence instead of looking stale.
+const existingQuotes = Object.values(marketStore.getState().quotes);
+if (existingQuotes.length > 0) seedSimulator({ quotes: existingQuotes, missing: [], fetchedAt: Date.now() });
 
 export const marketData = new MarketDataService({
   feed: simulator,

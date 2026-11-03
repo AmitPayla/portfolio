@@ -117,6 +117,17 @@ describe('SimulatedPriceFeed', () => {
     expect(states.at(-1)).toBe('open');
   });
 
+  it('continues the sequence from seeded seqs so a re-seeded feed is not mistaken for stale', () => {
+    const feed = new SimulatedPriceFeed({ random: createSeededRandom(3) });
+    feed.seed(seeds.map((s) => ({ ...s, seq: 500 })));
+    const received: WireTick[] = [];
+    feed.onTick((t) => received.push(t));
+    feed.connect();
+    jest.advanceTimersByTime(3_000);
+    expect(received.length).toBeGreaterThan(0);
+    received.forEach((t) => expect(t.seq).toBeGreaterThan(500));
+  });
+
   it('only streams subscribed symbols', () => {
     const { feed, received } = startFeed();
     feed.subscribe(['WIPRO']);

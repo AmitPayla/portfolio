@@ -8,6 +8,8 @@ export interface SimulatorSeed {
   readonly highPaise: number | null;
   readonly lowPaise: number | null;
   readonly volume: number | null;
+  /** Last sequence the client has seen for this symbol, so numbering continues past it. */
+  readonly seq?: number;
 }
 
 export interface SimulatedFeedOptions {
@@ -129,6 +131,7 @@ export class SimulatedPriceFeed implements PriceFeed {
     this.heldBack.clear();
     for (const s of seeds) {
       this.instruments.set(s.symbol, { ltp: s.ltpPaise, high: s.highPaise, low: s.lowPaise, volume: s.volume });
+      if (s.seq != null) this.seqBySymbol.set(s.symbol, Math.max(this.seqBySymbol.get(s.symbol) ?? 0, s.seq));
     }
   }
 

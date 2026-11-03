@@ -95,7 +95,7 @@ export async function fetchOhlcSnapshot(symbols: readonly string[], options: Fet
       body: JSON.stringify({ symbols }),
       signal: controller.signal,
     });
-  } catch (error) {
+  } catch {
     const timedOut = controller.signal.aborted && !options.signal?.aborted;
     throw new OhlcError(
       timedOut ? 'timeout' : 'network',
