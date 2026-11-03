@@ -32,11 +32,11 @@ npm run lint       # eslint-config-expo, including the React Compiler hook rules
 
 **Tested on:** Android 15 emulator (Pixel 9 Pro, API 35) in Expo Go, SDK 58, light and dark mode. iOS was not tested.
 
-**Simulator controls:** long-press the LIVE pill to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), and see pipeline counters (received / applied / late-dropped / commits).
+**Simulator controls:** long-press the screen title ("Portfolio" or "Watchlist") to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), and see pipeline counters (received / applied / late-dropped / commits).
 
 ## What's in it
 
-- **Portfolio**: summary card where every figure has ₹ and %:
+- **Portfolio**: an edge-to-edge summary card where every figure has ₹ and %:
   - current value, with its change versus what you invested;
   - invested, with the share of your capital that has a live price ("99.38% priced");
   - total P&L and today's P&L.
@@ -46,7 +46,7 @@ npm run lint       # eslint-config-expo, including the React Compiler hook rules
 - **Stock detail**: live price, day change, open/high/low/prev close/volume, a chart of the ticks received since the screen opened, and your position.
 - **Buy / sell sheet**: quantity with validation, live estimated value, a new-average preview on buys and a realized-P&L preview on sells. It fills at the last price read at the moment you confirm.
 - Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** banner. Numbers use Indian grouping (₹12,34,567.89).
-- **Light/dark**: the app starts dark. The sun/moon button in the header switches theme: the new theme spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
+- **Light/dark**: the app starts dark. The sun/moon button (in a cutout at the summary card's top-right corner, and in the Watchlist header) switches theme: the new theme spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
 
 ## Architecture
 
@@ -100,7 +100,7 @@ The rules that keep renders scoped:
 
 | Component | Renders / 10 s |
 | --- | --- |
-| `PortfolioScreen`, toolbar, tab bar, LIVE pill | 0 |
+| `PortfolioScreen`, toolbar, tab bar | 0 |
 | Row identity (static half of each row) | 0 |
 | `HoldingRow` (all rows together) | ~122, i.e. one per real price change of a held symbol |
 | `SummaryCard` | ~122 |
@@ -135,7 +135,7 @@ To see it yourself: press `j` in the Expo CLI to open React Native DevTools, go 
 OLDCO is requested from the API like everything else. The API leaves it out, so it has no quote.
 
 - **Its row** shows quantity, average and cost; LTP, value and P&L show `--`. In value/P&L sorts it always goes last.
-- **The summary leaves it out of all four totals and says so.** The note names the symbol and its invested amount ("OLDCO has no live price and is left out of these totals (₹12,375.00 invested)").
+- **The summary leaves it out of all four totals.**
 - **The Invested figure shows the coverage as a number.** "99.38% priced" is ₹19,88,101.03 ÷ (₹19,88,101.03 + ₹12,375.00), and it reads 100.00% when everything has a price.
 
 Why this choice:
@@ -195,7 +195,7 @@ The look comes from how established investing apps use colour (Zerodha Kite, Gro
 
 ## Theme switch
 
-The sun/moon button in the Portfolio and Watchlist headers switches between light and dark. The new theme spreads out as a circle from the exact point you tapped until it covers the farthest corner. `src/ui/theme/ThemeProvider.tsx` runs it in five steps:
+The sun/moon button (Portfolio summary card, Watchlist header) switches between light and dark. The new theme spreads out as a circle from the exact point you tapped until it covers the farthest corner. `src/ui/theme/ThemeProvider.tsx` runs it in five steps:
 
 1. Snapshot the app as it looks now (Skia `MakeImageFromViewTag`).
 2. Lay the snapshot over the app in a Skia canvas, so the screen looks unchanged.

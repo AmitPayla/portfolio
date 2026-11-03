@@ -7,7 +7,7 @@ import { DEFAULT_SORT, type SortSpec } from '@/domain/holdingsList';
 import { marketData } from '@/services/marketData';
 import { useHoldingSymbols, useLoadState, useRefreshState } from '@/state/hooks';
 import { openSheet } from '@/features/sheets/sheetStore';
-import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
+import { PausedBanner } from '@/ui/components/FeedStatus';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
@@ -29,17 +29,14 @@ const openDevMenu = () => openSheet({ kind: 'dev' });
 // Rows glide to their new place when the sort changes; a native layout animation, no bounce.
 const reorderTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
 
-function TitleBand({ count }: { readonly count: number }) {
+/** The theme toggle normally lives in the summary card's cutout; without a card (error state) it sits here. */
+function TitleBand({ count, withThemeToggle = false }: { readonly count: number; readonly withThemeToggle?: boolean }) {
   return (
     <ScreenTitle
       eyebrow={`${count} ${count === 1 ? 'holding' : 'holdings'}`}
       title="Portfolio"
-      right={
-        <View style={styles.headerActions}>
-          <ThemeToggle />
-          <FeedStatusPill onLongPress={openDevMenu} />
-        </View>
-      }
+      right={withThemeToggle ? <ThemeToggle /> : undefined}
+      onLongPress={openDevMenu}
     />
   );
 }
@@ -141,7 +138,7 @@ export function PortfolioScreen() {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg }]}>
         <HeaderBackdrop height={insets.top + 210} />
-        <TitleBand count={symbols.length} />
+        <TitleBand count={symbols.length} withThemeToggle={load.status === 'error'} />
         {load.status === 'error' ? (
           <View style={[styles.errorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ErrorState message={load.error ?? 'Please check your connection.'} onRetry={() => void marketData.load()} />
@@ -200,7 +197,6 @@ export function PortfolioScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   errorCard: {
     marginHorizontal: space.lg,
     borderRadius: radius.xl,

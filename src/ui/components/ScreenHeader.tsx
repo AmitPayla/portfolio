@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { space } from '../theme/tokens';
@@ -33,23 +33,26 @@ export function ScreenTitle({
   eyebrow,
   title,
   right,
+  onLongPress,
 }: {
   readonly eyebrow: string;
   readonly title: string;
   readonly right?: ReactNode;
+  /** Hidden gesture on the title; the tab screens use it for the simulator dev menu. */
+  readonly onLongPress?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   return (
     <View style={[styles.row, { paddingTop: insets.top + space.md }]}>
-      <View style={styles.titles}>
+      <Pressable style={styles.titles} onLongPress={onLongPress} delayLongPress={450} disabled={!onLongPress} accessible={false}>
         <AppText variant="micro" color={colors.onHeader} style={styles.eyebrow}>
           {eyebrow}
         </AppText>
         <AppText variant="display" color={colors.onHeader} accessibilityRole="header">
           {title}
         </AppText>
-      </View>
+      </Pressable>
       {right}
     </View>
   );

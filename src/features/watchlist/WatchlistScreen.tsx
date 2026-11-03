@@ -7,7 +7,7 @@ import { marketData } from '@/services/marketData';
 import { useLoadState, useRefreshState, useWatchlist, useWatchlistHydrated } from '@/state/hooks';
 import { watchlistStore } from '@/state/watchlistStore';
 import { openSheet } from '@/features/sheets/sheetStore';
-import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
+import { PausedBanner } from '@/ui/components/FeedStatus';
 import { AppText } from '@/ui/components/AppText';
 import { Button } from '@/ui/components/primitives';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
@@ -86,12 +86,8 @@ export function WatchlistScreen() {
         <ScreenTitle
           eyebrow={hydrated ? `${symbols.length} ${symbols.length === 1 ? 'stock' : 'stocks'}` : 'Loading'}
           title="Watchlist"
-          right={
-            <View style={styles.headerActions}>
-              <ThemeToggle />
-              <FeedStatusPill onLongPress={openDevMenu} />
-            </View>
-          }
+          right={<ThemeToggle />}
+          onLongPress={openDevMenu}
         />
         {symbols.length > 0 ? (
           <View style={styles.addRow}>
@@ -171,7 +167,6 @@ export function WatchlistScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   addRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingBottom: space.md },
   addButton: { minHeight: 40, paddingHorizontal: space.lg, borderRadius: radius.pill },
   hint: { flex: 1, opacity: 0.7 },
