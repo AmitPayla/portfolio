@@ -31,6 +31,9 @@ export interface BottomSheetProps {
  * above the tab bar and follows the keyboard frame by frame. It eases in and
  * out on the UI thread; after a drag it settles with a critically damped
  * spring (no bounce). A fling or a drag past 30% of the height closes it.
+ * While the keyboard is up the sheet is capped to the room left above it, so
+ * its top (and any search field there) stays on screen; content that should
+ * give way, like a list, needs `flexShrink: 1`.
  * Shared values use .get()/.set(), the React Compiler-safe form of `.value`.
  */
 export function BottomSheet({ visible, onRequestClose, onClosed, children, testID }: BottomSheetProps) {
@@ -41,6 +44,8 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
   /** 0 until measured; reset on close so the next open measures and springs in again. */
   const sheetHeight = useSharedValue(0);
   const translateY = useSharedValue(screenHeight);
+  /** The full-screen layer, measured: on Android the window height leaves out the system bars. */
+  const areaHeight = useSharedValue(screenHeight);
 
   // Stay mounted while the exit animation runs; mount immediately when opened (render-phase update).
   const [mounted, setMounted] = useState(visible);
@@ -91,6 +96,7 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
   });
 
   const sheetStyle = useAnimatedStyle(() => ({
+    maxHeight: Math.min(areaHeight.get() * 0.88, areaHeight.get() - insets.top - space.sm - keyboard.height.get()),
     transform: [{ translateY: translateY.get() - keyboard.height.get() }],
   }));
   const backdropStyle = useAnimatedStyle(() => ({
@@ -99,7 +105,7 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
 
   if (!mounted) return null;
   return (
-    <View style={StyleSheet.absoluteFill} testID={testID}>
+    <View style={StyleSheet.absoluteFill} testID={testID} onLayout={(e) => areaHeight.set(e.nativeEvent.layout.height)}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }, backdropStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} accessibilityLabel="Close sheet" />
       </Animated.View>
@@ -139,7 +145,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderTopLeftRadius: radius.xl + 6,
     borderTopRightRadius: radius.xl + 6,
-    maxHeight: '88%',
   },
   handleZone: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 42, height: 5, borderRadius: 3 },

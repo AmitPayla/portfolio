@@ -89,7 +89,8 @@ export function AddSymbolSheet() {
   }, [query]);
 
   return (
-    <View style={{ maxHeight: height * 0.78 }} testID="add-symbol-sheet">
+    // flexShrink lets the list give way when BottomSheet caps its height above the keyboard.
+    <View style={{ maxHeight: height * 0.78, flexShrink: 1 }} testID="add-symbol-sheet">
       <View style={styles.header}>
         <AppText variant="title">Add to watchlist</AppText>
         <AppText variant="caption" tone="muted">

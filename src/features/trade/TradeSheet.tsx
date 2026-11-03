@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -222,7 +222,8 @@ export function TradeSheet({ symbol, initialSide }: { readonly symbol: string; r
         : 'Whole shares only';
 
   return (
-    <View style={styles.body} testID="trade-sheet">
+    // Scrolls only when a short screen caps the sheet above the keyboard; taps still land while typing.
+    <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" alwaysBounceVertical={false} testID="trade-sheet">
       <View style={styles.titleRow}>
         <SymbolAvatar symbol={symbol} size={44} />
         <View style={styles.titleText}>
@@ -333,7 +334,7 @@ export function TradeSheet({ symbol, initialSide }: { readonly symbol: string; r
         style={{ backgroundColor: sideColor, borderColor: sideColor }}
         accessibilityLabel={`Confirm ${side}`}
       />
-    </View>
+    </ScrollView>
   );
 }
 
