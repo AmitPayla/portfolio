@@ -14,7 +14,7 @@
     "android": {
       "package": "com.liveportfolio.app",
       "adaptiveIcon": {
-        "backgroundColor": "#FFCF33",
+        "backgroundColor": "#4F46E5",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -30,8 +30,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F7F2",
-          "dark": { "backgroundColor": "#0D0F0C" },
+          "backgroundColor": "#F5F6FA",
+          "dark": {
+            "backgroundColor": "#0A0C12"
+          },
           "image": "./assets/splash-icon.png",
           "imageWidth": 120
         }
