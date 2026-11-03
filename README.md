@@ -25,7 +25,7 @@ A development build works too: `npx expo run:android`.
 Checks:
 
 ```bash
-npm test           # 114 unit tests (Jest, jest-expo)
+npm test           # 124 unit tests (Jest, jest-expo)
 npm run typecheck  # tsc --noEmit, strict + noUncheckedIndexedAccess
 npm run lint       # eslint-config-expo, including the React Compiler hook rules
 ```
@@ -45,7 +45,8 @@ npm run lint       # eslint-config-expo, including the React Compiler hook rules
 - **Watchlist**: last price and day change, add from the 25 symbols, swipe left to remove (with Undo), persisted across restarts.
 - **Stock detail**: live price, day change, open/high/low/prev close/volume, a chart of the ticks received since the screen opened, and your position.
 - **Buy / sell sheet**: quantity with validation, live estimated value, a new-average preview on buys and a realized-P&L preview on sells. It fills at the last price read at the moment you confirm.
-- Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** banner. Light/dark follows the system. Numbers use Indian grouping (₹12,34,567.89).
+- Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** banner. Numbers use Indian grouping (₹12,34,567.89).
+- **Light/dark**: follows the system until you tap the sun/moon button in the header. The new theme then spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
 
 ## Architecture
 
@@ -176,6 +177,8 @@ The REST API is a shared test server, so it is called once per load, on pull-to-
 | Animation / gestures | Reanimated 4, Gesture Handler 3 | Animations and gestures run on the UI thread, independent of tick load |
 | Chart | react-native-svg, hand-rolled | One small line chart; full control over re-renders, no heavy chart dependency |
 | Persistence | AsyncStorage via zustand `persist` | The watchlist is a tiny list; values are sanitised on load |
+| Theme switch | @shopify/react-native-skia | Snapshots the app as a GPU image and cuts the growing hole on the UI thread; plain views can't cut a hole in an image |
+| System bars | expo-status-bar, expo-navigation-bar | Bar icons follow the app's own light/dark choice, not just the system's |
 | Lists | FlatList | 21–25 fixed-height rows; FlashList's recycling would add per-row animation-state pitfalls for no gain at this size |
 
 ## Design
@@ -190,6 +193,29 @@ The look comes from how established investing apps use colour (Zerodha Kite, Gro
 - **Motion** decelerates into place with no overshoot (`src/ui/theme/motion.ts`). The only spring settles the sheet after a drag, and it is critically damped.
 - **Manrope** with tabular figures, so live digits don't change width.
 
+## Theme switch
+
+The sun/moon button in the Portfolio and Watchlist headers switches between light and dark. The new theme spreads out as a circle from the exact point you tapped until it covers the farthest corner. `src/ui/theme/ThemeProvider.tsx` runs it in five steps:
+
+1. Snapshot the app as it looks now (Skia `MakeImageFromViewTag`).
+2. Lay the snapshot over the app in a Skia canvas, so the screen looks unchanged.
+3. Three frames later, switch the real theme underneath, hidden by the snapshot. Skia draws a new canvas as soon as its surface exists and Android shows it on the next frame; the third frame is margin against a full-screen flash.
+4. Cut a circular hole in the snapshot at the tap point and grow it over 720 ms (`cubic-bezier(0.45, 0, 0.15, 1)`) to the farthest corner plus 1 px (`revealRadius`, unit-tested). The live app, already in the new theme, shows through the hole. The clip path is rebuilt on the UI thread from a Reanimated shared value, so React doesn't render during the animation.
+5. Remove the overlay. Status and navigation bar icons each flip once the circle has swept their edge of the screen (`edgeCoverRadius`).
+
+What this preserves:
+
+- **No remounts.** Only the theme object changes, so the open screen, scroll positions and typed filter text survive. Rows sat at identical pixel positions before and after a switch on the emulator.
+- **Rapid taps.** Taps during a reveal queue, and the latest wins: two quick taps end where they started, three end flipped.
+- **Reduce Motion** switches instantly.
+- **Saved choice.** The splash screen waits for the saved choice, so a cold start never flashes the wrong theme.
+
+Measured on the emulator in a dev build:
+
+- **Latency:** about 210–280 ms from tap to the circle starting (snapshot 105–136 ms, settle frames about 45 ms, new-theme render 60–110 ms).
+- **Jank:** 1.3–6.6% janky frames across three toggles; the 6.6% run was the first, which includes first-use warm-up.
+- **No flash, both directions.** In a frame-by-frame analysis of screen recordings, the revealed area grew monotonically from the tap point, with no full-screen frame.
+
 Two platform quirks worth knowing:
 
 - Manrope has a ligature that draws `--` as one long dash, and `fontVariant: no-common-ligatures` is dropped by the New Architecture's text layer. `AppText` inserts a zero-width non-joiner between the hyphens so missing values still read as `--`.
@@ -197,7 +223,7 @@ Two platform quirks worth knowing:
 
 ## Tests
 
-114 unit tests cover:
+124 unit tests cover:
 
 - money maths and rounding;
 - Indian formatting;
@@ -209,7 +235,8 @@ Two platform quirks worth knowing:
 - the simulator: rate, ±0.2% moves on the tick grid, ~2% late ticks, silences, outages, subscriptions;
 - the service pipeline: batching, stale drops, paused/live, backoff and catch-up, refresh failure, retry;
 - trading consistency (holdings and summary after buys and sells);
-- watchlist persistence across a simulated restart.
+- watchlist persistence across a simulated restart;
+- the theme reveal's geometry (farthest-corner radius, edge coverage) and the saved light/dark choice.
 
 ## Skipped, and what I'd do next
 
@@ -230,6 +257,7 @@ With another day:
 - **Colour-vision-friendly palette option**, a full screen-reader pass, and testing on iOS.
 - **Market-hours awareness**, so "paused" vs "market closed" is explicit outside 9:15–15:30 IST.
 - **A richer chart**: scrubbing and time labels.
+- **A faster theme switch**: take the snapshot on press-in instead of on release, which hides most of its cost behind the finger. The snapshot is a software draw on the UI thread (about 110 ms on the emulator).
 
 ## Time spent
 

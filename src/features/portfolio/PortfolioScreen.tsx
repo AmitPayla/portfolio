@@ -11,6 +11,7 @@ import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
+import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
 import { DURATION, EASE_IN_OUT } from '@/ui/theme/motion';
@@ -33,7 +34,12 @@ function TitleBand({ count }: { readonly count: number }) {
     <ScreenTitle
       eyebrow={`${count} ${count === 1 ? 'holding' : 'holdings'}`}
       title="Portfolio"
-      right={<FeedStatusPill onLongPress={openDevMenu} />}
+      right={
+        <View style={styles.headerActions}>
+          <ThemeToggle />
+          <FeedStatusPill onLongPress={openDevMenu} />
+        </View>
+      }
     />
   );
 }
@@ -194,6 +200,7 @@ export function PortfolioScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   errorCard: {
     marginHorizontal: space.lg,
     borderRadius: radius.xl,

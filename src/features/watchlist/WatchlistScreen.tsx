@@ -11,6 +11,7 @@ import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
 import { AppText } from '@/ui/components/AppText';
 import { Button } from '@/ui/components/primitives';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
+import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
@@ -87,6 +88,7 @@ export function WatchlistScreen() {
           title="Watchlist"
           right={
             <View style={styles.headerActions}>
+              <ThemeToggle />
               <FeedStatusPill onLongPress={openDevMenu} />
             </View>
           }
