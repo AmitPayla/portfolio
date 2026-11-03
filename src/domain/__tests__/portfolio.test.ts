@@ -1,7 +1,7 @@
 import { formatMoney, formatPercent } from '../format';
 import { paise } from '../money';
 import { applyBuy } from '../orders';
-import { averagePricePaise, computeHoldingMetrics, createHolding, summarizePortfolio } from '../portfolio';
+import { averagePricePaise, computeHoldingMetrics, createHolding, describeUnpriced, summarizePortfolio } from '../portfolio';
 import type { Quote, QuoteMap } from '../quote';
 
 const p = (rupees: number) => paise(Math.round(rupees * 100));
@@ -110,6 +110,15 @@ describe('summarizePortfolio', () => {
     expect(allUnpriced.pnlPct).toBeNull();
     expect(allUnpriced.pricedInvestedShare).toBe(0);
     expect(empty.pricedInvestedShare).toBeNull();
+  });
+});
+
+describe('describeUnpriced', () => {
+  it('names one or two unpriced holdings and counts more, and is null when all are priced', () => {
+    expect(describeUnpriced([])).toBeNull();
+    expect(describeUnpriced([{ symbol: 'OLDCO' }])).toBe('OLDCO has no live price');
+    expect(describeUnpriced([{ symbol: 'OLDCO' }, { symbol: 'ABC' }])).toBe('OLDCO and ABC have no live price');
+    expect(describeUnpriced([{ symbol: 'A' }, { symbol: 'B' }, { symbol: 'C' }])).toBe('3 holdings have no live price');
   });
 });
 

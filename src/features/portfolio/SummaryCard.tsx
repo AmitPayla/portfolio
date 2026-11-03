@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-nativ
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, Stop } from 'react-native-svg';
 import { formatMoney, formatPercent, formatSignedMoney, trendOf } from '@/domain/format';
 import type { Paise } from '@/domain/money';
+import { describeUnpriced } from '@/domain/portfolio';
 import { usePortfolioSummary } from '@/state/hooks';
 import { AppText } from '@/ui/components/AppText';
 import { NUDGE_HEIGHT, PausedNudge } from '@/ui/components/FeedStatus';
@@ -241,10 +242,47 @@ export const SummaryCard = memo(function SummaryCard({ onLongPress }: { readonly
         />
       </View>
 
+      <UnpricedNote unpriced={summary.unpriced} investedPaise={summary.unpricedInvestedPaise} />
+
       <PausedNudge style={styles.nudge} />
     </NotchedCard>
   );
 });
+
+/**
+ * Footnote naming what the totals leave out and how much was invested in it,
+ * e.g. "OLDCO has no live price · ₹12,375.00 left out of totals". Only shown
+ * when some holding has no price; the "x% priced" beside Invested is the share.
+ */
+function UnpricedNote({
+  unpriced,
+  investedPaise,
+}: {
+  readonly unpriced: readonly { readonly symbol: string }[];
+  readonly investedPaise: Paise;
+}) {
+  const { colors } = useTheme();
+  const hero = colors.hero;
+  const who = describeUnpriced(unpriced);
+  if (!who) return null;
+  return (
+    <View
+      style={[styles.note, { borderTopColor: hero.divider }]}
+      accessible
+      accessibilityLabel={`${who}, so the ${formatMoney(investedPaise)} invested in it is left out of these totals.`}
+      testID="summary-unpriced-note"
+    >
+      <Ionicons name="information-circle-outline" size={15} color={hero.muted} style={styles.noteIcon} />
+      <AppText variant="caption" color={hero.muted} style={styles.noteText}>
+        {`${who} · `}
+        <AppText variant="caption" numeric color={hero.text}>
+          {formatMoney(investedPaise)}
+        </AppText>
+        {' left out of totals'}
+      </AppText>
+    </View>
+  );
+}
 
 export function SummaryCardSkeleton() {
   const { colors } = useTheme();
@@ -285,4 +323,15 @@ const styles = StyleSheet.create({
   stat: { flex: 1, gap: space.xs },
   statDivider: { width: StyleSheet.hairlineWidth, marginHorizontal: space.lg },
   skeletonStat: { paddingLeft: space.lg + StyleSheet.hairlineWidth },
+  note: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: space.lg,
+    paddingTop: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  // Nudged down to sit on the first line of text.
+  noteIcon: { marginTop: 1 },
+  noteText: { flex: 1 },
 });

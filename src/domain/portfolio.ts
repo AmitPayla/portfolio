@@ -183,3 +183,16 @@ export function summarizePortfolio(holdings: readonly Holding[], quotes: QuoteMa
     unpricedInvestedPaise,
   };
 }
+
+/**
+ * Who the summary's totals leave out, for the note under them: "OLDCO has no
+ * live price", "OLDCO and ABC have no live price", or "3 holdings have no
+ * live price". Null when every holding has a price.
+ */
+export function describeUnpriced(unpriced: readonly { readonly symbol: string }[]): string | null {
+  const [first, second] = unpriced;
+  if (!first) return null;
+  if (!second) return `${first.symbol} has no live price`;
+  if (unpriced.length === 2) return `${first.symbol} and ${second.symbol} have no live price`;
+  return `${unpriced.length} holdings have no live price`;
+}

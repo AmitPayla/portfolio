@@ -39,7 +39,7 @@ Notes:
 Checks:
 
 ```bash
-npm test           # 128 unit tests (Jest, jest-expo)
+npm test           # 129 unit tests (Jest, jest-expo)
 npm run typecheck  # tsc --noEmit, strict + noUncheckedIndexedAccess
 npm run lint       # eslint-config-expo, including the React Compiler hook rules
 ```
@@ -151,6 +151,7 @@ OLDCO is requested from the API like everything else. The API leaves it out, so 
 - **Its row** shows quantity, average and cost; LTP, value and P&L show `--`. In value/P&L sorts it always goes last.
 - **The summary leaves it out of all four totals.**
 - **The Invested figure shows the coverage as a number.** "99.38% priced" is ₹19,88,101.03 ÷ (₹19,88,101.03 + ₹12,375.00), and it reads 100.00% when everything has a price.
+- **A footnote on the card names what is left out and how much**: "ⓘ OLDCO has no live price · ₹12,375.00 left out of totals". Two unpriced holdings are named ("OLDCO and ABC have no live price"), more are counted ("3 holdings…"). It appears only when something has no price (`describeUnpriced`, unit-tested).
 
 Why this choice:
 
@@ -237,7 +238,7 @@ Two platform quirks worth knowing:
 
 ## Tests
 
-128 unit tests cover:
+129 unit tests cover:
 
 - money maths and rounding;
 - Indian formatting;
