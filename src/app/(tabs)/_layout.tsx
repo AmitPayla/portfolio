@@ -9,8 +9,8 @@ export default function TabsLayout() {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        // A hidden tab stops re-rendering on ticks; it catches up when shown again.
-        freezeOnBlur: true,
+        // Hidden tabs are frozen by <FreezeWhenHidden> in each route file: this
+        // version's JS tabs ignore `freezeOnBlur`.
         animation: 'shift',
         sceneStyle: { backgroundColor: colors.bg },
       }}
