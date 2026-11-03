@@ -4,7 +4,8 @@ import { useStoreWithEqualityFn } from 'zustand/traditional';
 import type { Paise } from '@/domain/money';
 import { computeHoldingMetrics, summarizePortfolio, type HoldingMetrics, type PortfolioSummary } from '@/domain/portfolio';
 import type { Quote } from '@/domain/quote';
-import { marketStore, type MarketState } from './marketStore';
+import { type MarketState } from './marketStore';
+import { useMarketSource } from './marketSource';
 import { portfolioStore } from './portfolioStore';
 import { watchlistStore } from './watchlistStore';
 
@@ -17,37 +18,39 @@ import { watchlistStore } from './watchlistStore';
  * - Derived totals use useStoreWithEqualityFn (React's
  *   useSyncExternalStoreWithSelector underneath) with a value equality, so the
  *   summary re-renders only when a number it shows actually changes.
+ * - Market data is read through useMarketSource(), so a screen covered by
+ *   another one can hold its prices still (<HoldPrices>) and skip every tick.
  */
 
 // ── Market ───────────────────────────────────────────────────────────────
 
 /** Full quote: for the detail screen, which shows every field. */
 export function useQuote(symbol: string): Quote | undefined {
-  return useStore(marketStore, (s) => s.quotes[symbol]);
+  return useStore(useMarketSource(), (s) => s.quotes[symbol]);
 }
 
 export function useLtp(symbol: string): Paise | null {
-  return useStore(marketStore, (s) => s.quotes[symbol]?.ltp ?? null);
+  return useStore(useMarketSource(), (s) => s.quotes[symbol]?.ltp ?? null);
 }
 
 export function usePrevClose(symbol: string): Paise | null {
-  return useStore(marketStore, (s) => s.quotes[symbol]?.prevClose ?? null);
+  return useStore(useMarketSource(), (s) => s.quotes[symbol]?.prevClose ?? null);
 }
 
 export function useIsUnavailable(symbol: string): boolean {
-  return useStore(marketStore, (s) => s.load.status === 'ready' && s.quotes[symbol] == null);
+  return useStore(useMarketSource(), (s) => s.load.status === 'ready' && s.quotes[symbol] == null);
 }
 
 export function useLoadState(): MarketState['load'] {
-  return useStore(marketStore, (s) => s.load);
+  return useStore(useMarketSource(), (s) => s.load);
 }
 
 export function useRefreshState(): MarketState['refresh'] {
-  return useStore(marketStore, (s) => s.refresh);
+  return useStore(useMarketSource(), (s) => s.refresh);
 }
 
 export function useStream(): MarketState['stream'] {
-  return useStore(marketStore, (s) => s.stream);
+  return useStore(useMarketSource(), (s) => s.stream);
 }
 
 // ── Portfolio ────────────────────────────────────────────────────────────
@@ -99,7 +102,7 @@ export function usePortfolioSummary(): PortfolioSummary {
   const holdings = useStore(portfolioStore, (s) => s.holdings);
   const list = useMemo(() => Object.values(holdings), [holdings]);
   const select = useCallback((s: MarketState) => summarizePortfolio(list, s.quotes), [list]);
-  return useStoreWithEqualityFn(marketStore, select, summaryEquals);
+  return useStoreWithEqualityFn(useMarketSource(), select, summaryEquals);
 }
 
 // ── Watchlist ────────────────────────────────────────────────────────────

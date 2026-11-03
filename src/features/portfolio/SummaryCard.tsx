@@ -44,6 +44,52 @@ function cardOutline(width: number, height: number): string {
   ].join(' ');
 }
 
+interface CardPaint {
+  /** A solid colour, or a gradient running from the top-left to the bottom-right corner. */
+  readonly fill: string | readonly string[];
+  readonly stroke: string;
+  /** Soft light bloom around the cutout, like a premium card. Decorative only. */
+  readonly glow?: string;
+}
+
+/**
+ * The card's shape, gradient and glow. Memoised on its size and colours, so a
+ * price tick re-renders only the numbers on top, not this SVG.
+ */
+const CardBackground = memo(function CardBackground({
+  width,
+  height,
+  fill,
+  stroke,
+  glow,
+}: CardPaint & { readonly width: number; readonly height: number }) {
+  const outline = cardOutline(width, height);
+  return (
+    <Svg style={StyleSheet.absoluteFill} width={width} height={height} pointerEvents="none">
+      <Defs>
+        {typeof fill === 'string' ? null : (
+          <LinearGradient id="cardFill" x1="0" y1="0" x2="1" y2="1">
+            {fill.map((color, i) => (
+              <Stop key={i} offset={i / Math.max(1, fill.length - 1)} stopColor={color} />
+            ))}
+          </LinearGradient>
+        )}
+        <ClipPath id="cardClip">
+          <Path d={outline} />
+        </ClipPath>
+      </Defs>
+      <Path d={outline} fill={typeof fill === 'string' ? fill : 'url(#cardFill)'} />
+      {glow ? (
+        <G clipPath="url(#cardClip)">
+          <Circle cx={width - 50} cy={0} r={120} fill={glow} />
+          <Circle cx={width - 40} cy={30} r={70} fill={glow} />
+        </G>
+      ) : null}
+      <Path d={outline} fill="none" stroke={stroke} strokeWidth={StyleSheet.hairlineWidth} />
+    </Svg>
+  );
+});
+
 /**
  * Edge-to-edge card with the theme toggle in a cutout at its top-right corner.
  * The shape is drawn with SVG rather than covered with a patch, so the header
@@ -55,12 +101,7 @@ function NotchedCard({
   glow,
   children,
   testID,
-}: {
-  /** A solid colour, or a gradient running from the top-left to the bottom-right corner. */
-  readonly fill: string | readonly string[];
-  readonly stroke: string;
-  /** Soft light bloom around the cutout, like a premium card. Decorative only. */
-  readonly glow?: string;
+}: CardPaint & {
   readonly children: ReactNode;
   readonly testID?: string;
 }) {
@@ -69,32 +110,10 @@ function NotchedCard({
     const { width, height } = e.nativeEvent.layout;
     setSize((s) => (s.width === width && s.height === height ? s : { width, height }));
   };
-  const outline = size.width > 0 ? cardOutline(size.width, size.height) : null;
   return (
     <View style={styles.card} onLayout={onLayout} testID={testID}>
-      {outline ? (
-        <Svg style={StyleSheet.absoluteFill} width={size.width} height={size.height} pointerEvents="none">
-          <Defs>
-            {typeof fill === 'string' ? null : (
-              <LinearGradient id="cardFill" x1="0" y1="0" x2="1" y2="1">
-                {fill.map((color, i) => (
-                  <Stop key={i} offset={i / Math.max(1, fill.length - 1)} stopColor={color} />
-                ))}
-              </LinearGradient>
-            )}
-            <ClipPath id="cardClip">
-              <Path d={outline} />
-            </ClipPath>
-          </Defs>
-          <Path d={outline} fill={typeof fill === 'string' ? fill : 'url(#cardFill)'} />
-          {glow ? (
-            <G clipPath="url(#cardClip)">
-              <Circle cx={size.width - 50} cy={0} r={120} fill={glow} />
-              <Circle cx={size.width - 40} cy={30} r={70} fill={glow} />
-            </G>
-          ) : null}
-          <Path d={outline} fill="none" stroke={stroke} strokeWidth={StyleSheet.hairlineWidth} />
-        </Svg>
+      {size.width > 0 ? (
+        <CardBackground width={size.width} height={size.height} fill={fill} stroke={stroke} glow={glow} />
       ) : null}
       {children}
       {/* Last, so it sits above the content in the touch order too. */}

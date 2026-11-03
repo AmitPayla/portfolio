@@ -106,7 +106,7 @@ The rules that keep renders scoped:
 4. **Ticks are buffered and flushed once per animation frame**: one store commit per frame however fast the feed runs.
 5. **Status changes are written only on transitions** (live ↔ paused ↔ reconnecting), never per tick.
 6. **Live sorts are throttled.** Value/P&L order is re-checked every 1.5 s, skipped while the user is dragging the list, and committed only if it actually changed. Rows glide to their new place instead of jumping 20 times a second.
-7. **Hidden tabs are frozen.** Expo Router's JS tabs silently ignore `freezeOnBlur` (they pass `false` to every tab screen), so each tab route wraps its screen in `react-freeze`, keyed on which tab is selected. The tab under a pushed stock detail is deliberately *not* frozen: freezing hides content, and the iOS swipe-back gesture reveals that screen before it regains focus, which showed as a blank page for a moment. It keeps rendering ticks while the detail screen is open; that is the cost of an instant, never-blank back.
+7. **Hidden tabs are frozen.** Expo Router's JS tabs silently ignore `freezeOnBlur` (they pass `false` to every tab screen), so each tab route wraps its screen in `react-freeze`, keyed on which tab is selected. The tab under a pushed stock detail is deliberately *not* frozen: freezing hides content, and the iOS swipe-back gesture reveals that screen before it regains focus, which showed as a blank page for a moment. Instead, any tab without focus **holds its prices** (`HoldPrices` in `src/state/marketSource.tsx`): the market hooks read a fixed snapshot that never notifies, so the screen stays visible with the prices it last showed, skips every tick, and catches up in one render when it is focused again. This also stops the frozen tab from triggering empty React commits on each tick.
 8. **Animation runs on the UI thread** (Reanimated 4): price flashes, presses, the tab pill, the sheet. JS only starts them.
 9. List hygiene: fixed-height rows with `getItemLayout`, stable `renderItem`/`keyExtractor`, memoised row halves (the static half skips every tick), and a memoised header element so typing in the search box never remounts it.
 
@@ -117,10 +117,10 @@ The rules that keep renders scoped:
 | `PortfolioScreen`, toolbar, tab bar | 0 |
 | Row identity (static half of each row) | 0 |
 | `HoldingRow` (all rows together) | ~122, i.e. one per real price change of a held symbol |
-| `SummaryCard` | ~122 |
+| `SummaryCard` | ~122 (its SVG background: 0, it is memoised on size and colours) |
 | Hidden Watchlist tab | 0 |
 | Portfolio while the Watchlist tab is open | 0 (it was ~120 before the freeze fix) |
-| Tabs under a pushed detail screen | 0 when measured; now they keep rendering (see point 7) |
+| Tabs under a pushed detail screen | 0 (prices held, see point 7) |
 
 **Scrolling under ticks** (Android `dumpsys gfxinfo`, about 15 s of flinging the list while 20 ticks/s flow; dev build on the emulator, so a release build on a phone does better):
 
