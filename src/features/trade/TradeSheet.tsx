@@ -32,7 +32,6 @@ import { isPricesPaused } from '@/ui/components/FeedStatus';
 import { Button, SuccessBurst, SymbolAvatar } from '@/ui/components/primitives';
 import { PressableScale } from '@/ui/components/PressableScale';
 import { PriceFlash } from '@/ui/components/PriceFlash';
-import { showToast } from '@/ui/components/Toast';
 import { DURATION, easeInOut } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { fonts, radius, space } from '@/ui/theme/tokens';
@@ -199,12 +198,8 @@ export function TradeSheet({ symbol, initialSide }: { readonly symbol: string; r
       return;
     }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // The sheet's own "Order filled" view is the confirmation; no toast on top of it.
     setFill(result.fill);
-    showToast({
-      tone: 'success',
-      title: `${side === 'buy' ? 'Bought' : 'Sold'} ${formatShares(result.fill.qty)} of ${symbol}`,
-      message: `Filled at ${formatMoney(result.fill.pricePaise)} · ${formatMoney(result.fill.valuePaise)}`,
-    });
     closeTimer.current = setTimeout(closeSheet, 1_800);
   };
 
