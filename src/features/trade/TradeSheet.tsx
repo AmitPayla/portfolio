@@ -10,7 +10,7 @@ import Animated, {
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { formatCount, formatMoney, formatShares, formatSignedMoney, trendOf } from '@/domain/format';
 import { mulQty } from '@/domain/money';
@@ -33,10 +33,10 @@ import { Button, SuccessBurst, SymbolAvatar } from '@/ui/components/primitives';
 import { PressableScale } from '@/ui/components/PressableScale';
 import { PriceFlash } from '@/ui/components/PriceFlash';
 import { showToast } from '@/ui/components/Toast';
+import { DURATION, easeInOut } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { fonts, radius, space } from '@/ui/theme/tokens';
 
-const SPRING = { damping: 20, stiffness: 260, mass: 0.7 } as const;
 
 /** Buy / Sell segmented control with a sliding, colour-shifting thumb. */
 const SideToggle = memo(function SideToggle({ side, onChange }: { readonly side: OrderSide; readonly onChange: (s: OrderSide) => void }) {
@@ -44,12 +44,12 @@ const SideToggle = memo(function SideToggle({ side, onChange }: { readonly side:
   const [width, setWidth] = useState(0);
   const progress = useSharedValue(side === 'buy' ? 0 : 1);
   useEffect(() => {
-    progress.value = withSpring(side === 'buy' ? 0 : 1, SPRING);
+    progress.set(withTiming(side === 'buy' ? 0 : 1, easeInOut(DURATION.base)));
   }, [side, progress]);
   const { gain, loss } = colors;
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: progress.value * (width / 2) }],
-    backgroundColor: interpolateColor(progress.value, [0, 1], [gain, loss]),
+    transform: [{ translateX: progress.get() * (width / 2) }],
+    backgroundColor: interpolateColor(progress.get(), [0, 1], [gain, loss]),
   }));
   return (
     <View style={[styles.toggle, { backgroundColor: colors.sunken }]} onLayout={(e) => setWidth(e.nativeEvent.layout.width - 8)} role="radiogroup">

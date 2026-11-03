@@ -12,6 +12,7 @@ import { HeaderBackdrop, ScreenTitle } from '@/ui/components/ScreenHeader';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
+import { DURATION, EASE_IN_OUT } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { radius, space } from '@/ui/theme/tokens';
 import { HOLDING_ROW_GAP, HOLDING_ROW_HEIGHT, HoldingRow } from './HoldingRow';
@@ -22,8 +23,8 @@ import { useHoldingOrder } from './useHoldingOrder';
 const ITEM_LENGTH = HOLDING_ROW_HEIGHT + HOLDING_ROW_GAP;
 const keyExtractor = (symbol: string) => symbol;
 const openDevMenu = () => openSheet({ kind: 'dev' });
-// Springy glide when a sort moves rows; runs as a native layout animation.
-const reorderTransition = LinearTransition.springify().damping(20).stiffness(170);
+// Rows glide to their new place when the sort changes; a native layout animation, no bounce.
+const reorderTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
 
 function TitleBand({ count }: { readonly count: number }) {
   return (

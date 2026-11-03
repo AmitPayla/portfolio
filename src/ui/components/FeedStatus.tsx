@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { MarketState, StreamStatus } from '@/state/marketStore';
 import { useLoadState, useStream } from '@/state/hooks';
+import { DURATION, EASE_IN, EASE_OUT } from '../theme/motion';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/tokens';
 import { AppText } from './AppText';
@@ -104,8 +105,8 @@ export const PausedBanner = memo(function PausedBanner({ top = 0 }: { readonly t
   if (!isPricesPaused(stream.status, loadStatus === 'ready')) return null;
   return (
     <Animated.View
-      entering={FadeInDown.springify().damping(16)}
-      exiting={FadeOutUp.duration(180)}
+      entering={FadeInDown.duration(DURATION.base).easing(EASE_OUT)}
+      exiting={FadeOutUp.duration(DURATION.fast).easing(EASE_IN)}
       pointerEvents="none"
       style={[styles.bannerWrap, { top }]}
       accessibilityLiveRegion="polite"

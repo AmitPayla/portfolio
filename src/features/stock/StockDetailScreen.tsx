@@ -16,6 +16,7 @@ import { Button, IconButton, SymbolAvatar } from '@/ui/components/primitives';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
+import { DURATION, EASE_OUT } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { radius, space } from '@/ui/theme/tokens';
 import { LiveChartCard, PositionCard, PriceHero, StatsCard } from './DetailSections';
@@ -149,7 +150,7 @@ export function StockDetailScreen() {
           </View>
         ) : null}
         <PriceHero symbol={symbol} />
-        <Animated.View entering={FadeInDown.duration(320).springify().damping(18)}>
+        <Animated.View entering={FadeInDown.duration(DURATION.slow).easing(EASE_OUT)}>
           <LiveChartCard symbol={symbol} />
           <PositionCard symbol={symbol} />
           <StatsCard symbol={symbol} />

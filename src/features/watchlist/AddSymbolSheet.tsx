@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
-import Animated, { ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useStore } from 'zustand';
 import { formatMoney } from '@/domain/format';
 import { companyName, MARKET_SYMBOLS } from '@/domain/symbols';
@@ -10,6 +10,7 @@ import { watchlistStore } from '@/state/watchlistStore';
 import { AppText } from '@/ui/components/AppText';
 import { SymbolAvatar } from '@/ui/components/primitives';
 import { PressableScale } from '@/ui/components/PressableScale';
+import { DURATION } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { fonts, radius, space } from '@/ui/theme/tokens';
 
@@ -33,7 +34,7 @@ function WatchToggle({ added, onPress, symbol }: { readonly added: boolean; read
       ]}
     >
       {added ? (
-        <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.watchInner}>
+        <Animated.View entering={FadeIn.duration(DURATION.fast)} style={styles.watchInner}>
           <Ionicons name="checkmark" size={14} color={colors.onBrand} />
           <AppText variant="caption" weight="extrabold" color={colors.onBrand}>
             Watching

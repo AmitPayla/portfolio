@@ -12,10 +12,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
+import { DURATION, EASE_IN, easeOut, SETTLE_SPRING } from '../theme/motion';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/tokens';
-
-const OPEN_SPRING = { damping: 22, stiffness: 240, mass: 0.9 } as const;
 
 export interface BottomSheetProps {
   readonly visible: boolean;
@@ -29,10 +28,10 @@ export interface BottomSheetProps {
 
 /**
  * Overlay bottom sheet drawn in the root view (not a native Modal) so it sits
- * above the tab bar and follows the keyboard frame by frame. Open/close and
- * drag-to-dismiss are springs on the UI thread; a fling or a drag past 30%
- * of the height closes it. Shared values use .get()/.set(), the React
- * Compiler-safe form of `.value`.
+ * above the tab bar and follows the keyboard frame by frame. It eases in and
+ * out on the UI thread; after a drag it settles with a critically damped
+ * spring (no bounce). A fling or a drag past 30% of the height closes it.
+ * Shared values use .get()/.set(), the React Compiler-safe form of `.value`.
  */
 export function BottomSheet({ visible, onRequestClose, onClosed, children, testID }: BottomSheetProps) {
   const { colors } = useTheme();
@@ -57,11 +56,11 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
     if (!mounted) return;
     if (visible) {
       // Re-opened while still laid out (e.g. mid-close): spring straight back.
-      if (sheetHeight.get() > 0) translateY.set(withSpring(0, OPEN_SPRING));
+      if (sheetHeight.get() > 0) translateY.set(withTiming(0, easeOut(DURATION.slow)));
       return;
     }
     translateY.set(
-      withTiming(sheetHeight.get() + 40, { duration: 220 }, (finished) => {
+      withTiming(sheetHeight.get() + 40, { duration: DURATION.base, easing: EASE_IN }, (finished) => {
         if (finished) scheduleOnRN(finishClose);
       }),
     );
@@ -86,7 +85,7 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
       if (e.translationY > sheetHeight.get() * 0.3 || e.velocityY > 900) {
         scheduleOnRN(onRequestClose);
       } else {
-        translateY.set(withSpring(0, OPEN_SPRING));
+        translateY.set(withSpring(0, SETTLE_SPRING));
       }
     },
   });
@@ -116,7 +115,7 @@ export function BottomSheet({ visible, onRequestClose, onClosed, children, testI
           sheetHeight.set(height);
           if (firstMeasure && visible) {
             translateY.set(height);
-            translateY.set(withSpring(0, OPEN_SPRING));
+            translateY.set(withTiming(0, easeOut(DURATION.slow)));
           }
         }}
         accessibilityViewIsModal

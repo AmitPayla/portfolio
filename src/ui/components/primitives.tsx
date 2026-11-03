@@ -5,10 +5,10 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { trendOf } from '@/domain/format';
+import { DURATION, easeOut } from '../theme/motion';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import { cardShadow, radius, space } from '../theme/tokens';
 import { AppText } from './AppText';
@@ -113,7 +113,7 @@ export const Chip = memo(function Chip({
   const { colors } = useTheme();
   const progress = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
-    progress.set(withTiming(selected ? 1 : 0, { duration: 180 }));
+    progress.set(withTiming(selected ? 1 : 0, easeOut(DURATION.fast)));
   }, [selected, progress]);
   const { surface, brand, border, text, onBrand } = colors;
   const boxStyle = useAnimatedStyle(() => ({
@@ -124,7 +124,7 @@ export const Chip = memo(function Chip({
     <PressableScale
       onPress={onPress}
       haptic
-      scaleTo={0.94}
+      scaleTo={0.96}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={accessibilityLabel ?? label}
@@ -189,7 +189,7 @@ export const Button = memo(function Button({
       onPress={onPress}
       disabled={inactive}
       haptic
-      scaleTo={0.96}
+      scaleTo={0.97}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
@@ -243,7 +243,7 @@ export const IconButton = memo(function IconButton({
     <PressableScale
       onPress={onPress}
       haptic
-      scaleTo={0.9}
+      scaleTo={0.94}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
@@ -264,11 +264,14 @@ export const IconButton = memo(function IconButton({
 // ── Pop-in check used by success states ─────────────────────────────────
 
 export function SuccessBurst({ color, iconColor }: { readonly color: string; readonly iconColor: string }) {
-  const scale = useSharedValue(0.3);
+  const scale = useSharedValue(0.8);
   useEffect(() => {
-    scale.value = withSpring(1, { damping: 9, stiffness: 180 });
+    scale.set(withTiming(1, easeOut(DURATION.slow)));
   }, [scale]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: Math.min(1, scale.value * 1.5) }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.get() }],
+    opacity: Math.min(1, (scale.get() - 0.8) * 5),
+  }));
   return (
     <Animated.View style={[{ width: 72, height: 72, borderRadius: 36, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }, style]}>
       <Ionicons name="checkmark" size={40} color={iconColor} />

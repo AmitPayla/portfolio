@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useEffect, useState, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { DURATION, easeInOut } from '../theme/motion';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/tokens';
 import { AppText } from './AppText';
@@ -15,9 +16,7 @@ const ICONS: Record<string, { active: IconName; idle: IconName; label: string }>
   watchlist: { active: 'star', idle: 'star-outline', label: 'Watchlist' },
 };
 
-const SPRING = { damping: 20, stiffness: 260, mass: 0.7 } as const;
-
-/** Tab bar with a soft indigo pill that springs between tabs. */
+/** Tab bar with a soft indigo pill that glides between tabs. */
 export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
@@ -25,7 +24,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
   const x = useSharedValue(0);
 
   useEffect(() => {
-    x.set(withSpring(state.index * tabWidth, SPRING));
+    x.set(withTiming(state.index * tabWidth, easeInOut(DURATION.base)));
   }, [state.index, tabWidth, x]);
 
   const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));

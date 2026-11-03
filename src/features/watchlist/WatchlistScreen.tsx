@@ -14,6 +14,7 @@ import { HeaderBackdrop, ScreenTitle } from '@/ui/components/ScreenHeader';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
+import { DURATION, EASE_IN_OUT } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { radius, space } from '@/ui/theme/tokens';
 import { WATCH_ROW_HEIGHT, WatchlistRow } from './WatchlistRow';
@@ -21,7 +22,7 @@ import { WATCH_ROW_HEIGHT, WatchlistRow } from './WatchlistRow';
 const keyExtractor = (symbol: string) => symbol;
 const openAdd = () => openSheet({ kind: 'add-symbol' });
 const openDevMenu = () => openSheet({ kind: 'dev' });
-const layoutTransition = LinearTransition.springify().damping(20).stiffness(180);
+const layoutTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
 
 function removeWithUndo(symbol: string) {
   const index = watchlistStore.getState().symbols.indexOf(symbol);

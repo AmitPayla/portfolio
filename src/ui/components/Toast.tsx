@@ -5,6 +5,7 @@ import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from 'zustand';
 import { createStore } from 'zustand/vanilla';
+import { DURATION, EASE_IN, EASE_OUT } from '../theme/motion';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/tokens';
 import { AppText } from './AppText';
@@ -47,8 +48,8 @@ export function ToastHost() {
       <Animated.View
         key={toast.id}
         // Transform-based (translateY + opacity): frame-based slides misplace bottom-anchored views.
-        entering={FadeInUp.springify().damping(16)}
-        exiting={FadeOutDown.duration(200)}
+        entering={FadeInUp.duration(DURATION.base).easing(EASE_OUT)}
+        exiting={FadeOutDown.duration(DURATION.fast).easing(EASE_IN)}
         style={[styles.toast, { backgroundColor: colors.ink }]}
         accessibilityLiveRegion="polite"
         testID="toast"
