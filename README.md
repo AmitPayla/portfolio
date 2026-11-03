@@ -12,7 +12,7 @@ A React Native (Expo, TypeScript strict) stock portfolio that stays correct and 
 
 ## Run it
 
-Requirements: **Node 22** (Expo SDK 58 needs Node ≥ 22.13; `.nvmrc` pins it), an Android emulator or device.
+Requirements: **Node 22** (Expo SDK 58 needs Node ≥ 22.13; `.nvmrc` pins it), and an Android emulator/device or an iPhone.
 
 ```bash
 nvm use          # Node 22
@@ -22,31 +22,45 @@ npx expo start   # then press "a" for Android: the CLI installs the matching Exp
 
 A development build works too: `npx expo run:android`.
 
+### On an iPhone (Expo Go)
+
+No Apple developer account is needed, but iOS Expo Go only opens a project from your computer when **both sides are signed in to the same Expo account** (free; required since September 2026).
+
+1. Install **Expo Go** from the App Store and sign in (account icon, top-right). Create a free account at [expo.dev/signup](https://expo.dev/signup) if you don't have one.
+2. Sign in to the same account on your computer: `npx expo login` (check with `npx expo whoami`).
+3. Run `npx expo start` and scan the QR code with the iPhone Camera, or open the project under "Development servers" in Expo Go.
+
+Notes:
+
+- The phone and computer must be on the same Wi-Fi. If the network blocks it, use `npx expo start --tunnel`.
+- App Store Expo Go supports only the latest SDK. If it reports an incompatible SDK, either upgrade the project (`npx expo install expo@latest && npx expo install --fix`) or use a development build.
+- **Development build without Expo Go:** with Xcode and a free Apple ID (Personal Team signing), connect the iPhone, turn on Developer Mode, and run `npx expo run:ios --device`. Free-account builds expire after 7 days. If the bundle ID is taken, change `ios.bundleIdentifier` in `app.json`.
+
 Checks:
 
 ```bash
-npm test           # 124 unit tests (Jest, jest-expo)
+npm test           # 127 unit tests (Jest, jest-expo)
 npm run typecheck  # tsc --noEmit, strict + noUncheckedIndexedAccess
 npm run lint       # eslint-config-expo, including the React Compiler hook rules
 ```
 
 **Tested on:** Android 15 emulator (Pixel 9 Pro, API 35) in Expo Go, SDK 58, light and dark mode. iOS was not tested.
 
-**Simulator controls:** long-press the screen title ("Portfolio" or "Watchlist") to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), and see pipeline counters (received / applied / late-dropped / commits).
+**Simulator controls:** long-press the summary card's current value (Portfolio) or the "Watchlist" title to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), and see pipeline counters (received / applied / late-dropped / commits).
 
 ## What's in it
 
-- **Portfolio**: an edge-to-edge summary card where every figure has ₹ and %:
+- **Portfolio**: the summary card sits at the top of the screen (no title above it), and every figure has ₹ and %:
   - current value, with its change versus what you invested;
   - invested, with the share of your capital that has a live price ("99.38% priced");
-  - total P&L and today's P&L.
+  - total P&L and today's P&L, side by side.
 
-  Then the live holdings list: sort by value / P&L / name (tap again to flip direction), filter-as-you-type, pull to refresh.
-- **Watchlist**: last price and day change, add from the 25 symbols, swipe left to remove (with Undo), persisted across restarts.
+  Then the live holdings list: sort by value / P&L / name (tap again to flip direction), filter-as-you-type, pull to refresh (on iOS a branded ring fills as you pull and spins while refreshing; a haptic tap marks the start).
+- **Watchlist**: last price and day change, add from the 25 symbols (the picker shows each one's last price and day change in ₹ and %), swipe left to remove (with Undo), persisted across restarts.
 - **Stock detail**: live price, day change, open/high/low/prev close/volume, a chart of the ticks received since the screen opened, and your position.
 - **Buy / sell sheet**: quantity with validation, live estimated value, a new-average preview on buys and a realized-P&L preview on sells. It fills at the last price read at the moment you confirm.
-- Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** banner. Numbers use Indian grouping (₹12,34,567.89).
-- **Light/dark**: the app starts dark. The sun/moon button (in a cutout at the summary card's top-right corner, and in the Watchlist header) switches theme: the new theme spreads out as a circle from your tap (see [Theme switch](#theme-switch)), and the choice is saved.
+- Every screen has loading (skeleton), empty, and error-with-retry states, plus a visible **"Prices paused"** indicator: on Portfolio it is a tag on the summary card's top edge that pops in when the feed stalls and shrinks away on the first tick back; Watchlist and stock detail show a floating banner. Numbers use Indian grouping (₹12,34,567.89).
+- **Light/dark follows the system.** The sun/moon button (in a cutout at the summary card's top-right corner, in the Watchlist header and on the stock detail screen) switches theme on the spot: the new theme spreads out as a circle from your tap (see [Theme switch](#theme-switch)). That choice holds until the phone's own setting next changes; then the app follows the phone again.
 
 ## Architecture
 
@@ -92,7 +106,7 @@ The rules that keep renders scoped:
 4. **Ticks are buffered and flushed once per animation frame**: one store commit per frame however fast the feed runs.
 5. **Status changes are written only on transitions** (live ↔ paused ↔ reconnecting), never per tick.
 6. **Live sorts are throttled.** Value/P&L order is re-checked every 1.5 s, skipped while the user is dragging the list, and committed only if it actually changed. Rows glide to their new place instead of jumping 20 times a second.
-7. **Hidden screens are frozen.** The native stack freezes tabs under a pushed detail screen (`freezeOnBlur`). Expo Router's JS tabs silently ignore `freezeOnBlur` (they pass `false` to every tab screen), so each tab route wraps its screen in `react-freeze`.
+7. **Hidden tabs are frozen.** Expo Router's JS tabs silently ignore `freezeOnBlur` (they pass `false` to every tab screen), so each tab route wraps its screen in `react-freeze`, keyed on which tab is selected. The tab under a pushed stock detail is deliberately *not* frozen: freezing hides content, and the iOS swipe-back gesture reveals that screen before it regains focus, which showed as a blank page for a moment. It keeps rendering ticks while the detail screen is open; that is the cost of an instant, never-blank back.
 8. **Animation runs on the UI thread** (Reanimated 4): price flashes, presses, the tab pill, the sheet. JS only starts them.
 9. List hygiene: fixed-height rows with `getItemLayout`, stable `renderItem`/`keyExtractor`, memoised row halves (the static half skips every tick), and a memoised header element so typing in the search box never remounts it.
 
@@ -106,7 +120,7 @@ The rules that keep renders scoped:
 | `SummaryCard` | ~122 |
 | Hidden Watchlist tab | 0 |
 | Portfolio while the Watchlist tab is open | 0 (it was ~120 before the freeze fix) |
-| Tabs under a pushed detail screen | 0 |
+| Tabs under a pushed detail screen | 0 when measured; now they keep rendering (see point 7) |
 
 **Scrolling under ticks** (Android `dumpsys gfxinfo`, about 15 s of flinging the list while 20 ticks/s flow; dev build on the emulator, so a release build on a phone does better):
 
@@ -172,7 +186,7 @@ The REST API is a shared test server, so it is called once per load, on pull-to-
 | Need | Choice | Why |
 | --- | --- | --- |
 | App framework | Expo SDK 58 (React Native 0.88, New Architecture) | Fastest route to a runnable Android build; Expo Go ships every native module used here |
-| Navigation | Expo Router (native stack + JS tabs) | File routes stay thin; the native stack gives native transitions and `freezeOnBlur` |
+| Navigation | Expo Router (native stack + JS tabs) | File routes stay thin; the native stack gives native transitions and gestures |
 | State | zustand (vanilla stores) | Selector subscriptions with no providers; stores are testable without React |
 | Animation / gestures | Reanimated 4, Gesture Handler 3 | Animations and gestures run on the UI thread, independent of tick load |
 | Chart | react-native-svg, hand-rolled | One small line chart; full control over re-renders, no heavy chart dependency |
@@ -195,7 +209,7 @@ The look comes from how established investing apps use colour (Zerodha Kite, Gro
 
 ## Theme switch
 
-The sun/moon button (Portfolio summary card, Watchlist header) switches between light and dark. The new theme spreads out as a circle from the exact point you tapped until it covers the farthest corner. `src/ui/theme/ThemeProvider.tsx` runs it in five steps:
+The app follows the phone's light/dark setting. The sun/moon button (Portfolio summary card, Watchlist header, stock detail header) switches theme on the spot, and that choice holds until the phone's setting next changes. The new theme spreads out as a circle from the exact point you tapped until it covers the farthest corner. `src/ui/theme/ThemeProvider.tsx` runs it in five steps:
 
 1. Snapshot the app as it looks now (Skia `MakeImageFromViewTag`).
 2. Lay the snapshot over the app in a Skia canvas, so the screen looks unchanged.
@@ -208,7 +222,7 @@ What this preserves:
 - **No remounts.** Only the theme object changes, so the open screen, scroll positions and typed filter text survive. Rows sat at identical pixel positions before and after a switch on the emulator.
 - **Rapid taps.** Taps during a reveal queue, and the latest wins: two quick taps end where they started, three end flipped.
 - **Reduce Motion** switches instantly.
-- **Starts dark, remembers the choice.** The splash screen is dark and waits for the saved choice, so a cold start never flashes the wrong theme. The splash colour is native config, so it only changes in a new build, not in Expo Go.
+- **Follows the phone.** A toggle choice is saved with the phone setting it was made under, so it survives a restart, but it ends as soon as the phone's setting changes (`resolveScheme`, unit-tested). The splash screen follows the phone and waits for the saved choice, so a cold start never flashes the wrong theme.
 
 Measured on the emulator in a dev build:
 
@@ -223,7 +237,7 @@ Two platform quirks worth knowing:
 
 ## Tests
 
-124 unit tests cover:
+127 unit tests cover:
 
 - money maths and rounding;
 - Indian formatting;
@@ -236,7 +250,7 @@ Two platform quirks worth knowing:
 - the service pipeline: batching, stale drops, paused/live, backoff and catch-up, refresh failure, retry;
 - trading consistency (holdings and summary after buys and sells);
 - watchlist persistence across a simulated restart;
-- the theme reveal's geometry (farthest-corner radius, edge coverage) and the saved light/dark choice.
+- the theme reveal's geometry (farthest-corner radius, edge coverage), following the phone's light/dark setting, and when a toggle choice ends.
 
 ## Skipped, and what I'd do next
 
@@ -246,7 +260,6 @@ Done from the stretch list:
 - Simulator dev menu (tick rate, force disconnect).
 
 Not done:
-- **Following the phone's light/dark setting.** The brief asks for it; this build starts dark by product choice, and the header toggle switches theme. Bringing it back means adding a "system" value to the theme store and resolving it with `useColorScheme()`.
 - Limit orders.
 - An orders-history screen. Fills are already recorded in the store.
 

@@ -8,12 +8,12 @@ import { PressableScale } from './PressableScale';
 export const THEME_TOGGLE_SIZE = 36;
 
 /**
- * Light/dark switch (watchlist header, portfolio summary card). It passes the
- * exact tap point, so the new theme spreads out as a circle from under the
- * user's finger. The icon shows where a tap takes you: a moon in light mode,
- * a sun in dark mode.
+ * Light/dark switch (watchlist header, portfolio summary card, stock detail
+ * header). It passes the exact tap point, so the new theme spreads out as a
+ * circle from under the user's finger. The icon shows where a tap takes you:
+ * a moon in light mode, a sun in dark mode.
  */
-export const ThemeToggle = memo(function ThemeToggle() {
+export const ThemeToggle = memo(function ThemeToggle({ size = THEME_TOGGLE_SIZE }: { readonly size?: number }) {
   const { dark, colors } = useTheme();
   const toggle = useThemeToggle();
   return (
@@ -25,7 +25,7 @@ export const ThemeToggle = memo(function ThemeToggle() {
       accessibilityRole="button"
       accessibilityLabel={dark ? 'Switch to light theme' : 'Switch to dark theme'}
       testID="theme-toggle"
-      style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[styles.button, { width: size, height: size, backgroundColor: colors.surface, borderColor: colors.border }]}
     >
       <Ionicons name={dark ? 'sunny' : 'moon'} size={16} color={colors.text} />
     </PressableScale>
@@ -34,8 +34,6 @@ export const ThemeToggle = memo(function ThemeToggle() {
 
 const styles = StyleSheet.create({
   button: {
-    width: THEME_TOGGLE_SIZE,
-    height: THEME_TOGGLE_SIZE,
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',

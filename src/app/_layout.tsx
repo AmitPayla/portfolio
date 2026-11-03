@@ -61,8 +61,8 @@ function AppStack() {
         headerShown: false,
         contentStyle: { backgroundColor: colors.bg },
         animation: 'slide_from_right',
-        // Screens underneath a pushed screen stop rendering while hidden.
-        freezeOnBlur: true,
+        // No freezeOnBlur: freezing hides the screen under a pushed stock detail, and on iOS the
+        // swipe-back gesture reveals it before it regains focus, so it showed as a blank page.
       }}
     >
       <Stack.Screen name="(tabs)" />

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { marketData } from '@/services/marketData';
@@ -11,6 +11,7 @@ import { PausedBanner } from '@/ui/components/FeedStatus';
 import { AppText } from '@/ui/components/AppText';
 import { Button } from '@/ui/components/primitives';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
+import { PullIndicator, usePullToRefresh } from '@/ui/components/PullToRefresh';
 import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
@@ -24,6 +25,7 @@ import { WATCH_ROW_HEIGHT, WatchlistRow } from './WatchlistRow';
 const keyExtractor = (symbol: string) => symbol;
 const openAdd = () => openSheet({ kind: 'add-symbol' });
 const openDevMenu = () => openSheet({ kind: 'dev' });
+const refreshPrices = () => void marketData.refresh();
 const layoutTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
 
 const SKELETON_ROWS = 5;
@@ -67,6 +69,7 @@ export function WatchlistScreen() {
   const hydrated = useWatchlistHydrated();
   const load = useLoadState();
   const refresh = useRefreshState();
+  const pullToRefresh = usePullToRefresh(refresh.inFlight, refreshPrices);
 
   const openStock = useCallback((symbol: string) => router.push(`/stock/${symbol}`), [router]);
   const lastIndex = symbols.length - 1;
@@ -147,18 +150,12 @@ export function WatchlistScreen() {
           />
         }
         contentContainerStyle={{ paddingBottom: space.xxxl }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refresh.inFlight}
-            onRefresh={() => void marketData.refresh()}
-            tintColor={colors.text}
-            colors={[colors.onBrand]}
-            progressBackgroundColor={colors.brand}
-            progressViewOffset={insets.top}
-          />
-        }
+        onScroll={pullToRefresh.onScroll}
+        scrollEventThrottle={16}
+        refreshControl={pullToRefresh.refreshControl}
         testID="watchlist-list"
       />
+      <PullIndicator pull={pullToRefresh.pull} refreshing={refresh.inFlight} />
       <StatusBarScrim />
       <PausedBanner top={insets.top + space.sm} />
     </View>

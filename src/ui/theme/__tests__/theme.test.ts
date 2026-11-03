@@ -1,6 +1,6 @@
 import type AsyncStorage from '@react-native-async-storage/async-storage';
 import { edgeCoverRadius, revealRadius } from '../revealMath';
-import { createThemePreferenceStore, isColorScheme } from '../themePreference';
+import { createThemePreferenceStore, isColorScheme, overrideFor, resolveScheme, systemScheme } from '../themePreference';
 
 describe('revealRadius', () => {
   const W = 412;
@@ -57,8 +57,29 @@ describe('edgeCoverRadius', () => {
   });
 });
 
-describe('isColorScheme', () => {
-  it('accepts light and dark only', () => {
+describe('following the phone', () => {
+  it('reads the phone setting, treating null and "unspecified" as light', () => {
+    expect(systemScheme('dark')).toBe('dark');
+    expect(['light', 'unspecified', null, undefined].map(systemScheme)).toEqual(['light', 'light', 'light', 'light']);
+  });
+
+  it('shows the phone scheme unless the user toggled since the phone last changed', () => {
+    expect(resolveScheme(null, 'dark')).toBe('dark');
+    expect(resolveScheme(null, 'light')).toBe('light');
+    // Toggled to dark while the phone was light: holds while the phone stays light…
+    const override = overrideFor('dark', 'light');
+    expect(resolveScheme(override, 'light')).toBe('dark');
+    // …and ends once the phone changes.
+    expect(resolveScheme(override, 'dark')).toBe('dark');
+    expect(resolveScheme({ scheme: 'light', system: 'light' }, 'dark')).toBe('dark');
+  });
+
+  it('drops the override when the user toggles back to the phone scheme', () => {
+    expect(overrideFor('light', 'light')).toBeNull();
+    expect(overrideFor('dark', 'light')).toEqual({ scheme: 'dark', system: 'light' });
+  });
+
+  it('recognises light and dark only', () => {
     expect(['light', 'dark'].every(isColorScheme)).toBe(true);
     expect([undefined, 'system', 'blue', 1, null].some(isColorScheme)).toBe(false);
   });
@@ -75,27 +96,28 @@ describe('theme preference store', () => {
   }
   const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-  it('starts dark, persists a choice across restarts and reports hydration', async () => {
+  it('follows the phone by default, keeps a toggle across restarts and reports hydration', async () => {
     const storage = memoryStorage();
     const first = createThemePreferenceStore(storage);
-    expect(first.getState()).toMatchObject({ preference: 'dark', hydrated: false });
+    expect(first.getState()).toMatchObject({ override: null, hydrated: false });
     await settle();
     expect(first.getState().hydrated).toBe(true);
-    first.setState({ preference: 'light' });
+    first.setState({ override: { scheme: 'dark', system: 'light' } });
     await settle();
 
     const afterRestart = createThemePreferenceStore(storage);
     await settle();
-    expect(afterRestart.getState()).toMatchObject({ preference: 'light', hydrated: true });
+    expect(afterRestart.getState()).toMatchObject({ override: { scheme: 'dark', system: 'light' }, hydrated: true });
   });
 
-  it('falls back to dark for anything unexpected in storage, including the old "system" value', async () => {
-    for (const saved of [{ preference: 'system' }, { preference: 'blue' }, 'garbage', null]) {
+  it('follows the phone for anything unexpected in storage, including older saved shapes', async () => {
+    const saved = [{ preference: 'dark' }, { override: { scheme: 'blue', system: 'light' } }, { override: 'dark' }, 'garbage', null];
+    for (const state of saved) {
       const storage = memoryStorage();
-      await storage.setItem('theme-preference', JSON.stringify({ state: saved, version: 1 }));
+      await storage.setItem('theme-preference', JSON.stringify({ state, version: 1 }));
       const store = createThemePreferenceStore(storage);
       await settle();
-      expect(store.getState()).toMatchObject({ preference: 'dark', hydrated: true });
+      expect(store.getState()).toMatchObject({ override: null, hydrated: true });
     }
   });
 });

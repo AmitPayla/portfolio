@@ -3,9 +3,10 @@ import { memo, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useStore } from 'zustand';
-import { formatMoney } from '@/domain/format';
+import { formatMoney, formatPercent, formatSignedMoney, MISSING, trendOf } from '@/domain/format';
+import { dayChange } from '@/domain/quote';
 import { companyName, MARKET_SYMBOLS } from '@/domain/symbols';
-import { useLtp } from '@/state/hooks';
+import { useLtp, usePrevClose } from '@/state/hooks';
 import { watchlistStore } from '@/state/watchlistStore';
 import { AppText } from '@/ui/components/AppText';
 import { SymbolAvatar } from '@/ui/components/primitives';
@@ -14,39 +15,30 @@ import { DURATION } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { fonts, radius, space } from '@/ui/theme/tokens';
 
-/** Watch toggle: an outlined "+ Watch" pill that springs into a filled "Watching" state. */
+/**
+ * Watch toggle: a "+" circle that fills into a "✓" once the symbol is watched.
+ * Compact, so the last price and day change fit beside it on a phone.
+ */
 function WatchToggle({ added, onPress, symbol }: { readonly added: boolean; readonly onPress: () => void; readonly symbol: string }) {
   const { colors } = useTheme();
   return (
     <PressableScale
       onPress={onPress}
       haptic
-      scaleTo={0.92}
+      scaleTo={0.9}
+      hitSlop={6}
       accessibilityRole="button"
       accessibilityState={{ selected: added }}
       accessibilityLabel={added ? `Remove ${symbol} from watchlist` : `Add ${symbol} to watchlist`}
       testID={`watch-toggle-${symbol}`}
-      style={[
-        styles.watch,
-        added
-          ? { backgroundColor: colors.brand, borderColor: colors.brand }
-          : { backgroundColor: colors.brandSoft, borderColor: colors.brandSoft },
-      ]}
+      style={[styles.watch, { backgroundColor: added ? colors.brand : colors.brandSoft }]}
     >
       {added ? (
-        <Animated.View entering={FadeIn.duration(DURATION.fast)} style={styles.watchInner}>
-          <Ionicons name="checkmark" size={14} color={colors.onBrand} />
-          <AppText variant="caption" weight="extrabold" color={colors.onBrand}>
-            Watching
-          </AppText>
+        <Animated.View entering={FadeIn.duration(DURATION.fast)}>
+          <Ionicons name="checkmark" size={18} color={colors.onBrand} />
         </Animated.View>
       ) : (
-        <View style={styles.watchInner}>
-          <Ionicons name="add" size={15} color={colors.brand} />
-          <AppText variant="caption" weight="extrabold" color={colors.brand}>
-            Watch
-          </AppText>
-        </View>
+        <Ionicons name="add" size={20} color={colors.brand} />
       )}
     </PressableScale>
   );
@@ -55,6 +47,10 @@ function WatchToggle({ added, onPress, symbol }: { readonly added: boolean; read
 const PickerRow = memo(function PickerRow({ symbol, added }: { readonly symbol: string; readonly added: boolean }) {
   const { colors } = useTheme();
   const ltp = useLtp(symbol);
+  const prevClose = usePrevClose(symbol);
+  const change = useMemo(() => dayChange(ltp == null ? undefined : { ltp, prevClose }), [ltp, prevClose]);
+  const trend = trendOf(change?.abs);
+  const changeColor = trend === 'up' ? colors.gain : trend === 'down' ? colors.loss : colors.textMuted;
   const toggle = () => {
     const { add, remove } = watchlistStore.getState();
     if (added) remove(symbol);
@@ -64,14 +60,25 @@ const PickerRow = memo(function PickerRow({ symbol, added }: { readonly symbol: 
     <View style={[styles.row, { borderBottomColor: colors.hairline }]}>
       <SymbolAvatar symbol={symbol} size={38} />
       <View style={styles.names}>
-        <AppText variant="label">{symbol}</AppText>
+        <AppText variant="label" numberOfLines={1}>
+          {symbol}
+        </AppText>
         <AppText variant="caption" tone="muted" numberOfLines={1}>
           {companyName(symbol)}
         </AppText>
       </View>
-      <AppText variant="caption" tone="muted" numeric>
-        {formatMoney(ltp)}
-      </AppText>
+      {/* Last price, then today's change in ₹ and %, as on the watchlist itself. */}
+      <View style={styles.quote}>
+        <AppText variant="label" numeric>
+          {formatMoney(ltp)}
+        </AppText>
+        <View style={styles.change}>
+          {trend !== 'flat' ? <Ionicons name={trend === 'up' ? 'caret-up' : 'caret-down'} size={9} color={changeColor} /> : null}
+          <AppText variant="caption" weight="bold" numeric color={changeColor}>
+            {change ? `${formatSignedMoney(change.abs)} (${formatPercent(change.pct)})` : MISSING}
+          </AppText>
+        </View>
+      </View>
       <WatchToggle added={added} onPress={toggle} symbol={symbol} />
     </View>
   );
@@ -149,16 +156,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  names: { flex: 1 },
-  watch: {
-    minWidth: 96,
-    height: 32,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: space.md,
-  },
-  watchInner: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  names: { flex: 1, minWidth: 0 },
+  quote: { alignItems: 'flex-end', gap: 2, flexShrink: 0 },
+  change: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  watch: { width: 36, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   empty: { textAlign: 'center', paddingVertical: space.xl },
 });

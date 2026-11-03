@@ -1,13 +1,13 @@
 import { Skia, type SkImage } from '@shopify/react-native-skia';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { findNodeHandle, StyleSheet, View, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
+import { findNodeHandle, StyleSheet, useColorScheme, View, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useStore } from 'zustand';
 import { CircularReveal, type RevealFrame } from './CircularReveal';
 import { revealRadius, type ScreenEdge } from './revealMath';
-import { themePreferenceStore, type ColorScheme } from './themePreference';
+import { overrideFor, resolveScheme, systemScheme, themePreferenceStore, type ColorScheme } from './themePreference';
 import { darkTheme, lightTheme, type Theme } from './tokens';
 
 /** Long enough to read as a wave, short enough not to feel slow. */
@@ -76,8 +76,10 @@ interface PendingChange {
  * ends where the last tap pointed.
  */
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
-  // The saved choice: dark until the user picks light. During a reveal it is ahead of the screen.
-  const target = useStore(themePreferenceStore, (s) => s.preference);
+  // The phone's setting, unless the user toggled since it last changed. During a reveal this is ahead of the screen.
+  const system = systemScheme(useColorScheme());
+  const override = useStore(themePreferenceStore, (s) => s.override);
+  const target = resolveScheme(override, system);
   const reduceMotion = useReducedMotion();
 
   const [applied, setApplied] = useState<ColorScheme>(target);
@@ -159,11 +161,17 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   // Free each snapshot's native memory once its overlay is gone.
   useEffect(() => () => frame?.image.dispose(), [frame]);
 
-  // The saved choice changed without a tap (storage hydration): switch without a reveal,
-  // as there is no tap point to start it from.
+  // The phone's setting changed (or storage hydrated): switch without a reveal, as there is
+  // no tap point to start it from.
   useEffect(() => {
     if (target !== intended.current) void run({ scheme: target });
   }, [target, run]);
+
+  // An override made under another phone setting has ended. Drop it, so the phone changing
+  // back later doesn't bring it back.
+  useEffect(() => {
+    if (override && override.system !== system) themePreferenceStore.setState({ override: null });
+  }, [override, system]);
 
   const theme = applied === 'dark' ? darkTheme : lightTheme;
   useEffect(() => {
@@ -176,9 +184,9 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
       // Relative to where the theme is heading, so quick repeated taps alternate as expected.
       const next: ColorScheme = intended.current === 'dark' ? 'light' : 'dark';
       void run({ scheme: next, origin });
-      themePreferenceStore.setState({ preference: next });
+      themePreferenceStore.setState({ override: overrideFor(next, system) });
     },
-    [run],
+    [run, system],
   );
 
   const onEdgeCovered = useCallback((edge: ScreenEdge) => {

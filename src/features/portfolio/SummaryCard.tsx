@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, Stop } from 'react-native-svg';
 import { formatMoney, formatPercent, formatSignedMoney, trendOf } from '@/domain/format';
+import type { Paise } from '@/domain/money';
 import { usePortfolioSummary } from '@/state/hooks';
 import { AppText } from '@/ui/components/AppText';
+import { NUDGE_HEIGHT, PausedNudge } from '@/ui/components/FeedStatus';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { THEME_TOGGLE_SIZE, ThemeToggle } from '@/ui/components/ThemeToggle';
 import { useTheme } from '@/ui/theme/ThemeProvider';
-import { radius, space } from '@/ui/theme/tokens';
+import { space } from '@/ui/theme/tokens';
 
 // The cutout in the top-right corner holds the theme toggle: an even gap round
 // the button, open to the screen edge on the right.
@@ -103,116 +105,124 @@ function NotchedCard({
   );
 }
 
-/**
- * A % chip in the card's palette. `sign` picks green/red with an arrow; without
- * a sign (e.g. "99.38% priced") it is neutral, because it is not a gain or loss.
- */
-function PctChip({ label, sign, testID }: { readonly label: string; readonly sign?: number | null; readonly testID?: string }) {
+/** "▲ 2.87%" in the card's palette: green/red with an arrow, muted when unknown. */
+function Change({ pct, sign, testID }: { readonly pct: number | null; readonly sign: number | null; readonly testID?: string }) {
   const { colors } = useTheme();
   const hero = colors.hero;
-  const trend = sign === undefined ? 'flat' : trendOf(sign);
-  const color = trend === 'up' ? hero.gain : trend === 'down' ? hero.loss : hero.accent;
-  const bg = trend === 'up' ? hero.gainSoft : trend === 'down' ? hero.lossSoft : hero.divider;
+  const trend = trendOf(sign);
+  const color = trend === 'up' ? hero.gain : trend === 'down' ? hero.loss : hero.muted;
   return (
-    <View style={[styles.chip, { backgroundColor: bg }]} testID={testID}>
-      {trend !== 'flat' ? <Ionicons name={trend === 'up' ? 'caret-up' : 'caret-down'} size={9} color={color} /> : null}
-      <AppText variant="caption" numeric color={color}>
-        {label}
+    <View style={styles.change} testID={testID}>
+      {trend !== 'flat' ? <Ionicons name={trend === 'up' ? 'caret-up' : 'caret-down'} size={10} color={color} /> : null}
+      <AppText variant="label" numeric color={color}>
+        {formatPercent(pct, 'negative-only')}
       </AppText>
     </View>
   );
 }
 
-/** One line of the ledger: label, amount in ₹, and its % chip, aligned in columns. */
-function LedgerRow({
+/** One of the two P&L figures under the divider: label, signed ₹ amount, and its % change. */
+function Stat({
   label,
   amount,
-  amountColor,
-  chip,
+  pct,
   testID,
 }: {
   readonly label: string;
-  readonly amount: string;
-  readonly amountColor: string;
-  readonly chip: ReactNode;
+  readonly amount: Paise | null;
+  readonly pct: number | null;
   readonly testID?: string;
 }) {
   const { colors } = useTheme();
+  const hero = colors.hero;
+  const trend = trendOf(amount);
+  const color = amount == null ? hero.muted : trend === 'up' ? hero.gain : trend === 'down' ? hero.loss : hero.text;
   return (
-    <View style={styles.ledgerRow} accessible accessibilityLabel={`${label} ${amount}`}>
-      <AppText variant="caption" color={colors.hero.muted} style={styles.ledgerLabel}>
+    <View style={styles.stat} accessible accessibilityLabel={`${label} ${formatSignedMoney(amount)}, ${formatPercent(pct)}`}>
+      <AppText variant="micro" color={hero.muted}>
         {label}
       </AppText>
-      <AppText variant="heading" numeric color={amountColor} style={styles.ledgerAmount} numberOfLines={1} testID={testID}>
-        {amount}
+      <AppText variant="heading" numeric color={color} numberOfLines={1} adjustsFontSizeToFit testID={testID}>
+        {formatSignedMoney(amount)}
       </AppText>
-      <View style={styles.ledgerChip}>{chip}</View>
+      <Change pct={pct} sign={amount} />
     </View>
   );
 }
 
 /**
- * Portfolio totals: current value, invested, total P&L and today's P&L, each
- * in ₹ and %. Subscribes through usePortfolioSummary, which only re-renders
- * this card when one of the displayed numbers changes.
+ * Portfolio totals, laid out to be read top-down: the current value with its
+ * overall change, what was invested (and how much of it has a live price),
+ * then total and today's P&L side by side. Every figure has ₹ and %.
+ * Subscribes through usePortfolioSummary, which only re-renders this card
+ * when one of the displayed numbers changes. A "Prices paused" nudge sits on
+ * the top edge while the feed is stalled.
  */
-export const SummaryCard = memo(function SummaryCard() {
+export const SummaryCard = memo(function SummaryCard({ onLongPress }: { readonly onLongPress?: () => void }) {
   const { colors } = useTheme();
   const summary = usePortfolioSummary();
   const hero = colors.hero;
   const priced = summary.pricedCount > 0;
   const dayKnown = summary.pricedCount > summary.dayExcludedCount;
-  const moneyColor = (value: number) => {
-    const trend = trendOf(value);
-    return trend === 'up' ? hero.gain : trend === 'down' ? hero.loss : hero.text;
-  };
 
   return (
     <NotchedCard fill={hero.gradient} stroke={hero.border} glow={hero.glow} testID="summary-card">
-      <View style={styles.headerRow}>
-        <AppText variant="micro" color={hero.muted}>
-          Current value
+      {/* Hidden gesture: long-press the value for the simulator dev menu. */}
+      <Pressable onLongPress={onLongPress} delayLongPress={450} disabled={!onLongPress} accessible={false}>
+        <View style={styles.headerRow}>
+          <AppText variant="micro" color={hero.muted}>
+            Current value
+          </AppText>
+        </View>
+        <View style={styles.valueRow}>
+          <AppText
+            variant="display"
+            numeric
+            color={hero.text}
+            style={styles.value}
+            testID="summary-current-value"
+            adjustsFontSizeToFit
+            numberOfLines={1}
+          >
+            {formatMoney(priced ? summary.currentValuePaise : null)}
+          </AppText>
+          <Change
+            pct={priced ? summary.valueVsInvestedPct : null}
+            sign={priced ? summary.pnlPaise : null}
+            testID="summary-value-pct"
+          />
+        </View>
+        <AppText variant="caption" numeric color={hero.muted} style={styles.invested}>
+          {'Invested '}
+          <AppText variant="caption" numeric color={hero.text} testID="summary-invested">
+            {formatMoney(priced ? summary.investedPaise : null)}
+          </AppText>
+          {'  ·  '}
+          <AppText variant="caption" numeric color={hero.muted} testID="summary-priced-share">
+            {`${formatPercent(summary.pricedInvestedShare, 'negative-only')} priced`}
+          </AppText>
         </AppText>
-      </View>
-      <AppText variant="display" numeric color={hero.text} testID="summary-current-value" adjustsFontSizeToFit numberOfLines={1}>
-        {formatMoney(priced ? summary.currentValuePaise : null)}
-      </AppText>
-      <View style={styles.valueChange}>
-        <PctChip
-          label={formatPercent(priced ? summary.valueVsInvestedPct : null)}
-          sign={priced ? summary.pnlPaise : null}
-          testID="summary-value-pct"
-        />
-        <AppText variant="caption" color={hero.muted}>
-          vs invested
-        </AppText>
-      </View>
+      </Pressable>
 
       <View style={[styles.divider, { backgroundColor: hero.divider }]} />
 
-      <View style={styles.ledger}>
-        <LedgerRow
-          label="Invested"
-          amount={formatMoney(priced ? summary.investedPaise : null)}
-          amountColor={hero.text}
-          testID="summary-invested"
-          chip={<PctChip label={`${formatPercent(summary.pricedInvestedShare, 'negative-only')} priced`} testID="summary-priced-share" />}
-        />
-        <LedgerRow
+      <View style={styles.stats}>
+        <Stat
           label="Total P&L"
-          amount={formatSignedMoney(priced ? summary.pnlPaise : null)}
-          amountColor={priced ? moneyColor(summary.pnlPaise) : hero.muted}
+          amount={priced ? summary.pnlPaise : null}
+          pct={priced ? summary.pnlPct : null}
           testID="summary-pnl"
-          chip={<PctChip label={formatPercent(priced ? summary.pnlPct : null)} sign={priced ? summary.pnlPaise : null} />}
         />
-        <LedgerRow
+        <View style={[styles.statDivider, { backgroundColor: hero.divider }]} />
+        <Stat
           label="Today's P&L"
-          amount={formatSignedMoney(dayKnown ? summary.dayPnlPaise : null)}
-          amountColor={dayKnown ? moneyColor(summary.dayPnlPaise) : hero.muted}
+          amount={dayKnown ? summary.dayPnlPaise : null}
+          pct={dayKnown ? summary.dayPnlPct : null}
           testID="summary-day-pnl"
-          chip={<PctChip label={formatPercent(dayKnown ? summary.dayPnlPct : null)} sign={dayKnown ? summary.dayPnlPaise : null} />}
         />
       </View>
+
+      <PausedNudge style={styles.nudge} />
     </NotchedCard>
   );
 });
@@ -224,17 +234,15 @@ export function SummaryCardSkeleton() {
       <View style={styles.headerRow}>
         <Skeleton width={110} height={11} />
       </View>
-      <Skeleton width="70%" height={30} style={{ marginTop: space.md }} />
-      <Skeleton width="35%" height={16} style={{ marginTop: space.md }} />
+      <Skeleton width="65%" height={30} style={{ marginTop: space.xs }} />
+      <Skeleton width="55%" height={12} style={{ marginTop: space.md }} />
       <View style={[styles.divider, { backgroundColor: colors.hairline }]} />
-      <View style={styles.ledger}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={styles.ledgerRow}>
-            <Skeleton width={70} height={12} />
-            <View style={styles.ledgerAmount}>
-              <Skeleton width="70%" height={16} style={styles.skeletonAmount} />
-            </View>
-            <Skeleton width={72} height={18} rounded={radius.pill} />
+      <View style={styles.stats}>
+        {[0, 1].map((i) => (
+          <View key={i} style={[styles.stat, i === 1 && styles.skeletonStat]}>
+            <Skeleton width={64} height={10} />
+            <Skeleton width={96} height={16} />
+            <Skeleton width={48} height={12} />
           </View>
         ))}
       </View>
@@ -245,22 +253,17 @@ export function SummaryCardSkeleton() {
 const styles = StyleSheet.create({
   card: { padding: space.xl },
   notchButton: { position: 'absolute', top: NOTCH_GAP, right: space.lg },
+  // Straddles the card's top edge, like a sale tag on a product card.
+  nudge: { top: -NUDGE_HEIGHT / 2, left: space.xl },
   // Tall enough that the big value below starts under the cutout, never beside it.
   headerRow: { minHeight: NOTCH_HEIGHT - space.xl, justifyContent: 'center', marginBottom: 2 },
-  valueChange: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
+  valueRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  value: { flexShrink: 1 },
+  change: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  invested: { marginTop: space.xs },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: space.lg },
-  ledger: { gap: space.md },
-  ledgerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  ledgerLabel: { width: 84 },
-  ledgerAmount: { flex: 1, textAlign: 'right', alignItems: 'flex-end' },
-  ledgerChip: { width: 108, alignItems: 'flex-end' },
-  skeletonAmount: { alignSelf: 'flex-end' },
+  stats: { flexDirection: 'row', alignItems: 'stretch' },
+  stat: { flex: 1, gap: space.xs },
+  statDivider: { width: StyleSheet.hairlineWidth, marginHorizontal: space.lg },
+  skeletonStat: { paddingLeft: space.lg + StyleSheet.hairlineWidth },
 });

@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { FadeInDown, FadeOutUp, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import type { MarketState, StreamStatus } from '@/state/marketStore';
 import { useLoadState, useStream } from '@/state/hooks';
 import { DURATION, EASE_IN, EASE_OUT } from '../theme/motion';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/tokens';
 import { AppText } from './AppText';
+
+/** Height of the paused nudge; a card that hosts it offsets it by half, so it straddles the card's top edge. */
+export const NUDGE_HEIGHT = 22;
 
 /** "Prices paused" applies whenever we have prices but they are not currently streaming. */
 export function isPricesPaused(status: StreamStatus, hasData: boolean): boolean {
@@ -68,7 +71,44 @@ export const PausedBanner = memo(function PausedBanner({ top = 0 }: { readonly t
   );
 });
 
+/**
+ * "Prices paused" as a tag pinned to the top edge of a card, like a sale
+ * badge. It pops in when the feed stalls and shrinks away on the first tick
+ * back. The parent positions it absolutely, so it never moves the card's content.
+ */
+export const PausedNudge = memo(function PausedNudge({ style }: { readonly style?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  const stream = useStream();
+  const { status: loadStatus } = useLoadState();
+  if (!isPricesPaused(stream.status, loadStatus === 'ready')) return null;
+  // onInk is white in light mode and near-black in dark mode: the readable pair for warn in each theme.
+  return (
+    <Animated.View
+      entering={ZoomIn.duration(DURATION.base).easing(EASE_OUT)}
+      exiting={ZoomOut.duration(DURATION.slow).easing(EASE_IN)}
+      pointerEvents="none"
+      style={[styles.nudge, { backgroundColor: colors.warn }, style]}
+      accessibilityLiveRegion="polite"
+      testID="prices-paused-nudge"
+    >
+      <Ionicons name="pause" size={11} color={colors.onInk} />
+      <AppText variant="caption" numeric color={colors.onInk}>
+        Prices paused · <PausedDetail {...stream} />
+      </AppText>
+    </Animated.View>
+  );
+});
+
 const styles = StyleSheet.create({
+  nudge: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+    height: NUDGE_HEIGHT,
+    paddingHorizontal: space.sm + 2,
+    borderRadius: radius.pill,
+  },
   bannerWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 20 },
   banner: {
     flexDirection: 'row',

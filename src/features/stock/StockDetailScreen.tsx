@@ -15,11 +15,15 @@ import { PausedBanner } from '@/ui/components/FeedStatus';
 import { Button, IconButton, SymbolAvatar } from '@/ui/components/primitives';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
+import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { showToast } from '@/ui/components/Toast';
 import { DURATION, EASE_OUT } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { radius, space } from '@/ui/theme/tokens';
 import { LiveChartCard, PositionCard, PriceHero, StatsCard } from './DetailSections';
+
+/** Same size as IconButton's default, so the header buttons line up. */
+const HEADER_BUTTON_SIZE = 40;
 
 function toggleWatch(symbol: string, watched: boolean) {
   const store = watchlistStore.getState();
@@ -47,17 +51,18 @@ const Header = memo(function Header({ symbol, canWatch }: { readonly symbol: str
           </AppText>
         </View>
       </View>
-      {canWatch ? (
-        <IconButton
-          icon={watched ? 'star' : 'star-outline'}
-          color={watched ? colors.brand : colors.text}
-          background={watched ? colors.brandSoft : colors.surface}
-          onPress={() => toggleWatch(symbol, watched)}
-          accessibilityLabel={watched ? 'Remove from watchlist' : 'Add to watchlist'}
-        />
-      ) : (
-        <View style={styles.headerSpacer} />
-      )}
+      <View style={styles.headerActions}>
+        <ThemeToggle size={HEADER_BUTTON_SIZE} />
+        {canWatch ? (
+          <IconButton
+            icon={watched ? 'star' : 'star-outline'}
+            color={watched ? colors.brand : colors.text}
+            background={watched ? colors.brandSoft : colors.surface}
+            onPress={() => toggleWatch(symbol, watched)}
+            accessibilityLabel={watched ? 'Remove from watchlist' : 'Add to watchlist'}
+          />
+        ) : null}
+      </View>
     </View>
   );
 });
@@ -176,7 +181,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingBottom: space.sm },
   headerTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   headerText: { flexShrink: 1 },
-  headerSpacer: { width: 40 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   scroll: { paddingBottom: space.xxxl },
   unavailable: { marginHorizontal: space.lg, marginTop: space.sm, padding: space.md, borderRadius: radius.lg, gap: 2 },
   skeleton: { paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.md },

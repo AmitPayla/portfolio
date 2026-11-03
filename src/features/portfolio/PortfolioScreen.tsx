@@ -1,15 +1,15 @@
 import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEFAULT_SORT, type SortSpec } from '@/domain/holdingsList';
 import { marketData } from '@/services/marketData';
 import { useHoldingSymbols, useLoadState, useRefreshState } from '@/state/hooks';
 import { openSheet } from '@/features/sheets/sheetStore';
-import { PausedBanner } from '@/ui/components/FeedStatus';
-import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
+import { HeaderBackdrop, StatusBarScrim } from '@/ui/components/ScreenHeader';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
+import { PullIndicator, usePullToRefresh } from '@/ui/components/PullToRefresh';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { ErrorState, StateView } from '@/ui/components/StateView';
@@ -29,15 +29,18 @@ const openDevMenu = () => openSheet({ kind: 'dev' });
 // Rows glide to their new place when the sort changes; a native layout animation, no bounce.
 const reorderTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
 
+/** Space above the summary card: the status bar, plus room for the paused nudge on the card's top edge. */
+function useCardTop(): number {
+  return useSafeAreaInsets().top + space.lg;
+}
+
 /** The theme toggle normally lives in the summary card's cutout; without a card (error state) it sits here. */
-function TitleBand({ count, withThemeToggle = false }: { readonly count: number; readonly withThemeToggle?: boolean }) {
+function ToggleRow() {
+  const insets = useSafeAreaInsets();
   return (
-    <ScreenTitle
-      eyebrow={`${count} ${count === 1 ? 'holding' : 'holdings'}`}
-      title="Portfolio"
-      right={withThemeToggle ? <ThemeToggle /> : undefined}
-      onLongPress={openDevMenu}
-    />
+    <View style={[styles.toggleRow, { paddingTop: insets.top + space.md }]}>
+      <ThemeToggle />
+    </View>
   );
 }
 
@@ -74,6 +77,7 @@ export function PortfolioScreen() {
   const symbols = useHoldingSymbols();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortSpec>(DEFAULT_SORT);
+  const cardTop = useCardTop();
   const isInteracting = useRef(false);
   const headerHeight = useRef(0);
   const order = useHoldingOrder(sort, query, { enabled: focused, isInteracting });
@@ -96,18 +100,19 @@ export function PortfolioScreen() {
     [],
   );
   const onRefresh = useCallback(() => void marketData.refresh(), []);
+  const pullToRefresh = usePullToRefresh(refresh.inFlight, onRefresh);
 
   // A stable element (not an inline component) so typing in the search box never remounts it.
   const listHeader = useMemo(
     () => (
       <View onLayout={(e) => (headerHeight.current = e.nativeEvent.layout.height)}>
         <HeaderBackdrop height={insets.top + 210} />
-        <TitleBand count={symbols.length} />
-        <SummaryCard />
+        <View style={{ height: cardTop }} />
+        <SummaryCard onLongPress={openDevMenu} />
         <HoldingsToolbar query={query} onQueryChange={setQuery} sort={sort} onSortChange={setSort} />
       </View>
     ),
-    [insets.top, symbols.length, query, sort],
+    [insets.top, cardTop, query, sort],
   );
 
   const listEmpty = useMemo(
@@ -138,13 +143,15 @@ export function PortfolioScreen() {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg }]}>
         <HeaderBackdrop height={insets.top + 210} />
-        <TitleBand count={symbols.length} withThemeToggle={load.status === 'error'} />
         {load.status === 'error' ? (
-          <View style={[styles.errorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ErrorState message={load.error ?? 'Please check your connection.'} onRetry={() => void marketData.load()} />
+          <View>
+            <ToggleRow />
+            <View style={[styles.errorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ErrorState message={load.error ?? 'Please check your connection.'} onRetry={() => void marketData.load()} />
+            </View>
           </View>
         ) : (
-          <View testID="portfolio-loading">
+          <View testID="portfolio-loading" style={{ paddingTop: cardTop }}>
             <SummaryCardSkeleton />
             <View style={styles.skeletonList}>
               {Array.from({ length: SKELETON_ROWS }, (_, i) => (
@@ -173,30 +180,24 @@ export function PortfolioScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
+        onScroll={pullToRefresh.onScroll}
+        scrollEventThrottle={16}
         onScrollBeginDrag={() => (isInteracting.current = true)}
         onScrollEndDrag={() => (isInteracting.current = false)}
         onMomentumScrollBegin={() => (isInteracting.current = true)}
         onMomentumScrollEnd={() => (isInteracting.current = false)}
-        refreshControl={
-          <RefreshControl
-            refreshing={refresh.inFlight}
-            onRefresh={onRefresh}
-            tintColor={colors.text}
-            colors={[colors.onBrand]}
-            progressBackgroundColor={colors.brand}
-            progressViewOffset={insets.top}
-          />
-        }
+        refreshControl={pullToRefresh.refreshControl}
         testID="holdings-list"
       />
+      <PullIndicator pull={pullToRefresh.pull} refreshing={refresh.inFlight} />
       <StatusBarScrim />
-      <PausedBanner top={insets.top + space.sm} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  toggleRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: space.lg, paddingBottom: space.lg },
   errorCard: {
     marginHorizontal: space.lg,
     borderRadius: radius.xl,
