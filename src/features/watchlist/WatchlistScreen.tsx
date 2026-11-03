@@ -10,7 +10,8 @@ import { openSheet } from '@/features/sheets/sheetStore';
 import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
 import { AppText } from '@/ui/components/AppText';
 import { Button } from '@/ui/components/primitives';
-import { HeaderBackdrop, ScreenTitle } from '@/ui/components/ScreenHeader';
+import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
+import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
@@ -23,6 +24,29 @@ const keyExtractor = (symbol: string) => symbol;
 const openAdd = () => openSheet({ kind: 'add-symbol' });
 const openDevMenu = () => openSheet({ kind: 'dev' });
 const layoutTransition = LinearTransition.duration(DURATION.slow).easing(EASE_IN_OUT);
+
+const SKELETON_ROWS = 5;
+
+/** Placeholder with the same shape as WatchlistRow, inside the same grouped surface. */
+function SkeletonRow({ index }: { readonly index: number }) {
+  const last = index === SKELETON_ROWS - 1;
+  const itemStyle = useGroupedItemStyle(index === 0, last, WATCH_ROW_HEIGHT);
+  return (
+    <View style={itemStyle}>
+      <View style={styles.skeletonRow}>
+        <View style={styles.skeletonColumn}>
+          <Skeleton width={90} height={15} />
+          <Skeleton width={140} height={11} />
+        </View>
+        <View style={[styles.skeletonColumn, styles.skeletonRight]}>
+          <Skeleton width={84} height={15} />
+          <Skeleton width={110} height={11} />
+        </View>
+      </View>
+      {last ? null : <GroupDivider />}
+    </View>
+  );
+}
 
 function removeWithUndo(symbol: string) {
   const index = watchlistStore.getState().symbols.indexOf(symbol);
@@ -44,13 +68,14 @@ export function WatchlistScreen() {
   const refresh = useRefreshState();
 
   const openStock = useCallback((symbol: string) => router.push(`/stock/${symbol}`), [router]);
+  const lastIndex = symbols.length - 1;
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<string>) => (
+    ({ item, index }: ListRenderItemInfo<string>) => (
       <Animated.View exiting={FadeOut.duration(160)}>
-        <WatchlistRow symbol={item} onOpen={openStock} onRemove={removeWithUndo} />
+        <WatchlistRow symbol={item} onOpen={openStock} onRemove={removeWithUndo} first={index === 0} last={index === lastIndex} />
       </Animated.View>
     ),
-    [openStock],
+    [openStock, lastIndex],
   );
 
   const header = useMemo(
@@ -84,15 +109,8 @@ export function WatchlistScreen() {
       <View style={[styles.root, { backgroundColor: colors.bg }]} testID="watchlist-loading">
         <HeaderBackdrop height={insets.top + 150} />
         <ScreenTitle eyebrow="Loading" title="Watchlist" />
-        {Array.from({ length: 5 }, (_, i) => (
-          <View key={i} style={[styles.skeletonRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Skeleton width={44} height={44} rounded={14} />
-            <View style={styles.skeletonText}>
-              <Skeleton width="40%" height={14} />
-              <Skeleton width="60%" height={11} />
-            </View>
-            <Skeleton width={70} height={16} />
-          </View>
+        {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+          <SkeletonRow key={i} index={i} />
         ))}
       </View>
     );
@@ -143,6 +161,7 @@ export function WatchlistScreen() {
         }
         testID="watchlist-list"
       />
+      <StatusBarScrim />
       <PausedBanner top={insets.top + space.sm} />
     </View>
   );
@@ -155,16 +174,7 @@ const styles = StyleSheet.create({
   addButton: { minHeight: 40, paddingHorizontal: space.lg, borderRadius: radius.pill },
   hint: { flex: 1, opacity: 0.7 },
   errorCard: { marginHorizontal: space.lg, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth },
-  skeletonRow: {
-    height: WATCH_ROW_HEIGHT,
-    marginHorizontal: space.lg,
-    marginBottom: 10,
-    borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingHorizontal: space.lg,
-  },
-  skeletonText: { flex: 1, gap: 8 },
+  skeletonRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg },
+  skeletonColumn: { gap: 8 },
+  skeletonRight: { alignItems: 'flex-end' },
 });

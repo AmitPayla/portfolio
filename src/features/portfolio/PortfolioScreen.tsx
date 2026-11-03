@@ -8,19 +8,21 @@ import { marketData } from '@/services/marketData';
 import { useHoldingSymbols, useLoadState, useRefreshState } from '@/state/hooks';
 import { openSheet } from '@/features/sheets/sheetStore';
 import { FeedStatusPill, PausedBanner } from '@/ui/components/FeedStatus';
-import { HeaderBackdrop, ScreenTitle } from '@/ui/components/ScreenHeader';
+import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
+import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
 import { showToast } from '@/ui/components/Toast';
 import { DURATION, EASE_IN_OUT } from '@/ui/theme/motion';
 import { useTheme } from '@/ui/theme/ThemeProvider';
 import { radius, space } from '@/ui/theme/tokens';
-import { HOLDING_ROW_GAP, HOLDING_ROW_HEIGHT, HoldingRow } from './HoldingRow';
+import { HOLDING_ROW_HEIGHT, HoldingRow } from './HoldingRow';
 import { HoldingsToolbar } from './HoldingsToolbar';
 import { SummaryCard, SummaryCardSkeleton } from './SummaryCard';
 import { useHoldingOrder } from './useHoldingOrder';
 
-const ITEM_LENGTH = HOLDING_ROW_HEIGHT + HOLDING_ROW_GAP;
+const ITEM_LENGTH = HOLDING_ROW_HEIGHT;
+const SKELETON_ROWS = 5;
 const keyExtractor = (symbol: string) => symbol;
 const openDevMenu = () => openSheet({ kind: 'dev' });
 // Rows glide to their new place when the sort changes; a native layout animation, no bounce.
@@ -36,19 +38,25 @@ function TitleBand({ count }: { readonly count: number }) {
   );
 }
 
-function RowSkeleton() {
-  const { colors } = useTheme();
+/** Placeholder row with the same shape as HoldingRow, inside the same grouped surface. */
+function RowSkeleton({ index }: { readonly index: number }) {
+  const last = index === SKELETON_ROWS - 1;
+  const itemStyle = useGroupedItemStyle(index === 0, last, HOLDING_ROW_HEIGHT);
   return (
-    <View style={[styles.skeletonRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={styles.skeletonTop}>
-        <Skeleton width={42} height={42} rounded={13} />
-        <View style={styles.skeletonText}>
-          <Skeleton width="45%" height={14} />
-          <Skeleton width="70%" height={11} />
+    <View style={itemStyle}>
+      <View style={styles.skeletonRow}>
+        <View style={styles.skeletonColumn}>
+          <Skeleton width={96} height={15} />
+          <Skeleton width={150} height={11} />
+          <Skeleton width={110} height={11} />
         </View>
-        <Skeleton width={80} height={18} />
+        <View style={[styles.skeletonColumn, styles.skeletonRight]}>
+          <Skeleton width={90} height={15} />
+          <Skeleton width={56} height={11} />
+          <Skeleton width={120} height={11} />
+        </View>
       </View>
-      <Skeleton width="100%" height={12} />
+      {last ? null : <GroupDivider />}
     </View>
   );
 }
@@ -72,9 +80,12 @@ export function PortfolioScreen() {
   }, [refresh.error]);
 
   const openStock = useCallback((symbol: string) => router.push(`/stock/${symbol}`), [router]);
+  const lastIndex = order.length - 1;
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<string>) => <HoldingRow symbol={item} onOpen={openStock} />,
-    [openStock],
+    ({ item, index }: ListRenderItemInfo<string>) => (
+      <HoldingRow symbol={item} onOpen={openStock} first={index === 0} last={index === lastIndex} />
+    ),
+    [openStock, lastIndex],
   );
   // Fixed-height rows: the list never has to measure them. Offsets include the header above the rows.
   const getItemLayout = useCallback(
@@ -133,8 +144,8 @@ export function PortfolioScreen() {
           <View testID="portfolio-loading">
             <SummaryCardSkeleton />
             <View style={styles.skeletonList}>
-              {Array.from({ length: 5 }, (_, i) => (
-                <RowSkeleton key={i} />
+              {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                <RowSkeleton key={i} index={i} />
               ))}
             </View>
           </View>
@@ -175,6 +186,7 @@ export function PortfolioScreen() {
         }
         testID="holdings-list"
       />
+      <StatusBarScrim />
       <PausedBanner top={insets.top + space.sm} />
     </View>
   );
@@ -188,15 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   skeletonList: { paddingTop: space.xl },
-  skeletonRow: {
-    height: HOLDING_ROW_HEIGHT,
-    marginHorizontal: space.lg,
-    marginBottom: HOLDING_ROW_GAP,
-    borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: space.lg,
-    justifyContent: 'space-between',
-  },
-  skeletonTop: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  skeletonText: { flex: 1, gap: 8 },
+  skeletonRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg },
+  skeletonColumn: { gap: 8 },
+  skeletonRight: { alignItems: 'flex-end' },
 });

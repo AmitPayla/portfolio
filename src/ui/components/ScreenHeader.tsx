@@ -19,6 +19,16 @@ export function HeaderBackdrop({ height }: { readonly height: number }) {
   );
 }
 
+/**
+ * Solid band behind the status bar so a scrolled list never runs under the
+ * clock. It uses the header wash's top colour, so at rest it is invisible.
+ */
+export function StatusBarScrim() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  return <View pointerEvents="none" style={[styles.scrim, { height: insets.top, backgroundColor: colors.headerGradient[0] }]} />;
+}
+
 export function ScreenTitle({
   eyebrow,
   title,
@@ -55,4 +65,5 @@ const styles = StyleSheet.create({
   },
   titles: { flexShrink: 1 },
   eyebrow: { opacity: 0.7, marginBottom: 2 },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
 });
