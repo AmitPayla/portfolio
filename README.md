@@ -39,14 +39,14 @@ Notes:
 Checks:
 
 ```bash
-npm test           # 127 unit tests (Jest, jest-expo)
+npm test           # 128 unit tests (Jest, jest-expo)
 npm run typecheck  # tsc --noEmit, strict + noUncheckedIndexedAccess
 npm run lint       # eslint-config-expo, including the React Compiler hook rules
 ```
 
 **Tested on:** Android 15 emulator (Pixel 9 Pro, API 35) in Expo Go, SDK 58, light and dark mode. iOS was not tested.
 
-**Simulator controls:** long-press the summary card's current value (Portfolio) or the "Watchlist" title to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), and see pipeline counters (received / applied / late-dropped / commits).
+**Simulator controls:** long-press the summary card's current value (Portfolio) or the "Watchlist" title to change the tick rate (5/20/50/100 per second), drop the connection for 10 s (watch the backoff and catch-up), show the loading skeletons for 3 s (display only, nothing is refetched), and see pipeline counters (received / applied / late-dropped / commits).
 
 ## What's in it
 
@@ -237,7 +237,7 @@ Two platform quirks worth knowing:
 
 ## Tests
 
-127 unit tests cover:
+128 unit tests cover:
 
 - money maths and rounding;
 - Indian formatting;
@@ -257,7 +257,7 @@ Two platform quirks worth knowing:
 Done from the stretch list:
 - Price flash on the UI thread.
 - Reconnect with backoff plus a catch-up REST fetch.
-- Simulator dev menu (tick rate, force disconnect).
+- Simulator dev menu (tick rate, force disconnect, loading-skeleton preview).
 
 Not done:
 - Limit orders.

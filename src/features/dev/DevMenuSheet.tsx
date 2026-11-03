@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { formatCount } from '@/domain/format';
 import { feedDevControls } from '@/services/marketData';
+import { previewLoading } from '@/state/loadingPreview';
 import { useStream } from '@/state/hooks';
 import { closeSheet } from '@/features/sheets/sheetStore';
 import { AppText } from '@/ui/components/AppText';
@@ -11,7 +12,10 @@ import { radius, space } from '@/ui/theme/tokens';
 
 const RATES = [5, 20, 50, 100] as const;
 
-/** Simulator controls for demos and profiling. Opened by long-pressing the LIVE pill. */
+/**
+ * Simulator controls for demos and profiling. Opened by long-pressing the
+ * summary card's current value (Portfolio) or the "Watchlist" title.
+ */
 export function DevMenuSheet() {
   const { colors } = useTheme();
   const stream = useStream();
@@ -71,6 +75,15 @@ export function DevMenuSheet() {
         ))}
       </View>
 
+      <Button
+        label="Show loading skeleton for 3s"
+        icon="hourglass-outline"
+        tone="ink"
+        onPress={() => {
+          previewLoading(3_000);
+          closeSheet();
+        }}
+      />
       <Button
         label="Drop connection for 10s"
         icon="cloud-offline-outline"

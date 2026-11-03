@@ -5,6 +5,7 @@ import type { Paise } from '@/domain/money';
 import { computeHoldingMetrics, summarizePortfolio, type HoldingMetrics, type PortfolioSummary } from '@/domain/portfolio';
 import type { Quote } from '@/domain/quote';
 import { type MarketState } from './marketStore';
+import { loadingPreviewStore } from './loadingPreview';
 import { useMarketSource } from './marketSource';
 import { portfolioStore } from './portfolioStore';
 import { watchlistStore } from './watchlistStore';
@@ -42,7 +43,10 @@ export function useIsUnavailable(symbol: string): boolean {
 }
 
 export function useLoadState(): MarketState['load'] {
-  return useStore(useMarketSource(), (s) => s.load);
+  const load = useStore(useMarketSource(), (s) => s.load);
+  // Dev menu preview (loadingPreview.ts): report "loading" over loaded data for a few seconds.
+  const previewing = useStore(loadingPreviewStore, (s) => s.active);
+  return useMemo<MarketState['load']>(() => (previewing && load.status === 'ready' ? { ...load, status: 'loading' } : load), [previewing, load]);
 }
 
 export function useRefreshState(): MarketState['refresh'] {
