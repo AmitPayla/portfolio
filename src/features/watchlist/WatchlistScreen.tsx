@@ -8,11 +8,10 @@ import { useLoadState, useRefreshState, useWatchlist, useWatchlistHydrated } fro
 import { watchlistStore } from '@/state/watchlistStore';
 import { openSheet } from '@/features/sheets/sheetStore';
 import { PausedBanner } from '@/ui/components/FeedStatus';
-import { AppText } from '@/ui/components/AppText';
 import { Button } from '@/ui/components/primitives';
 import { HeaderBackdrop, ScreenTitle, StatusBarScrim } from '@/ui/components/ScreenHeader';
 import { PullIndicator, usePullToRefresh } from '@/ui/components/PullToRefresh';
-import { ThemeToggle } from '@/ui/components/ThemeToggle';
+import { THEME_TOGGLE_SIZE, ThemeToggle } from '@/ui/components/ThemeToggle';
 import { GroupDivider, useGroupedItemStyle } from '@/ui/components/GroupedList';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { ErrorState, StateView } from '@/ui/components/StateView';
@@ -89,20 +88,27 @@ export function WatchlistScreen() {
         <ScreenTitle
           eyebrow={hydrated ? `${symbols.length} ${symbols.length === 1 ? 'stock' : 'stocks'}` : 'Loading'}
           title="Watchlist"
-          right={<ThemeToggle />}
+          right={
+            <View style={styles.headerActions}>
+              {/* An empty watchlist has its own "Add stocks" button in the empty state. */}
+              {symbols.length > 0 ? (
+                <Button
+                  label="Add"
+                  icon="add"
+                  tone="brand"
+                  onPress={openAdd}
+                  style={styles.addButton}
+                  accessibilityLabel="Add a stock to the watchlist"
+                />
+              ) : null}
+              <ThemeToggle />
+            </View>
+          }
           onLongPress={openDevMenu}
         />
-        {symbols.length > 0 ? (
-          <View style={styles.addRow}>
-            <AppText variant="caption" color={colors.onHeader} style={styles.hint}>
-              Swipe a stock left to remove it
-            </AppText>
-            <Button label="Add" icon="add" tone="brand" onPress={openAdd} style={styles.addButton} accessibilityLabel="Add a stock to the watchlist" />
-          </View>
-        ) : null}
       </View>
     ),
-    [insets.top, hydrated, symbols.length, colors.onHeader],
+    [insets.top, hydrated, symbols.length],
   );
 
   if (!hydrated || load.status === 'loading' || load.status === 'idle') {
@@ -164,9 +170,9 @@ export function WatchlistScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  addRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingBottom: space.md },
-  addButton: { minHeight: 40, paddingHorizontal: space.lg, borderRadius: radius.pill },
-  hint: { flex: 1, opacity: 0.7 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  // Same height as the theme toggle beside it.
+  addButton: { minHeight: THEME_TOGGLE_SIZE, height: THEME_TOGGLE_SIZE, paddingHorizontal: space.md, borderRadius: radius.pill },
   errorCard: { marginHorizontal: space.lg, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth },
   skeletonRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg },
   skeletonColumn: { gap: 8 },

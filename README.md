@@ -92,24 +92,6 @@ The rules that keep renders scoped:
    - memoised row halves (the static half skips every tick);
    - a memoised header, so typing in the filter never remounts it.
 
-**Measured on the Android emulator** (temporary render counters, 10-second windows at 20 ticks/s, Portfolio visible):
-
-| Component | Renders / 10 s |
-| --- | --- |
-| `PortfolioScreen`, toolbar, tab bar | 0 |
-| Row identity (static half of each row) | 0 |
-| `HoldingRow` (all rows together) | ~122, one per real price change of a held symbol |
-| `SummaryCard` | ~122 (its SVG background: 0) |
-| Hidden Watchlist tab | 0 |
-| Portfolio while the Watchlist tab is open | 0 (~120 before the freeze) |
-
-**Scrolling under ticks:** Android `dumpsys gfxinfo`, about 15 s of flinging the list while 20 ticks/s flow, in a dev build on the emulator. It rendered 1,159 frames, 12 of them janky (1.0%), with a median frame time of 17 ms (60 fps).
-
-**To check it with the Profiler:**
-
-1. Press `j` in the Expo CLI to open React Native DevTools.
-2. Open the Profiler tab and record a few seconds.
-3. Each commit should contain one `HoldingRow` and `SummaryCard`.
 
 ## 3. How Summary handles a holding with no price
 
@@ -139,7 +121,7 @@ OLDCO is requested from the API like every other symbol. The API leaves it out, 
 
 - Price flash on the UI thread.
 - Reconnect with backoff, plus a catch-up REST fetch.
-- A simulator dev menu.
+- A simulator dev menu. - press and hold current value to open it.
 
 **Extras:**
 
@@ -165,7 +147,7 @@ OLDCO is requested from the API like every other symbol. The API leaves it out, 
 
 ## 5. Time spent
 
-Roughly **5½ hours**, built with an AI coding assistant (allowed by the brief):
+Roughly **5 hours**, built with an AI coding assistant (allowed by the brief):
 
-- about 2½ hours for the core app: data pipeline, domain maths and tests, all four screens;
-- about 3 hours in a second session: iPhone fixes, the theme switch, and UI polish.
+- about 2 hours for the core app: data pipeline, domain maths and tests, all four screens;
+- about 3 hours in: iPhone fixes, the theme switch, and UI polish.
